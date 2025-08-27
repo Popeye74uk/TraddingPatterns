@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crypto Pattern Matcher - v2.41</title>
+  <title>Crypto Pattern Matcher - v2.5</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js from CDN -->
   <script type="module" src="strategies.js" defer></script> <!-- External strategies file -->
-
   <style>
     body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
     header { text-align: center; padding: 20px 0; font-size: 2rem; background: #2196f3; color: white; border-radius: 8px; }
@@ -28,12 +27,14 @@
       <canvas id="priceChart" width="800" height="400"></canvas> <!-- Chart container -->
     </div>
     <div class="loading" id="loadingMessage">Loading Data...</div>
-    <!-- Removed old strategy box -->
-    <div id="strategyResults" class="strategies"></div> <!-- New strategy results output -->
+    <!-- New strategy results output -->
+    <div id="strategyResults" class="strategies"></div>
     <div id="debugInfo" class="debug"></div> <!-- Debugging output -->
   </div>
 
-  <script>
+  <script type="module">
+    import { strategies } from './strategies.js'; // Import strategies from strategies.js
+    
     let version = 2.4; // Incremented version number
     document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
     let isDataFetched = false; // Flag to prevent redundant data fetches
@@ -158,20 +159,15 @@
     function evaluateStrategies(priceData) {
       showDebugData('Stage: Evaluating strategies...');
       
-      // Check if strategies are loaded
-      if (!window.strategies || !Array.isArray(window.strategies)) {
-        showDebugData('Error: Strategies file not loaded properly. Checking strategies...');
+      // Log the strategies object
+      console.log('Strategies Object:', strategies);
 
-        // Check if strategies are loaded correctly
-        if (window.strategies) {
-          showDebugData(`Strategies object is loaded. Count: ${window.strategies.length}`);
-        } else {
-          showDebugData('Error: Strategies object is undefined');
-        }
+      if (!strategies || !Array.isArray(strategies)) {
+        showDebugData('Error: Strategies file not loaded properly.');
         return;
       }
 
-      const results = window.strategies.map(strategy => {
+      const results = strategies.map(strategy => {
         const result = strategy.evaluate(priceData);
         return {
           name: strategy.name,
@@ -211,5 +207,3 @@
   </script>
 </body>
 </html>
-
-
