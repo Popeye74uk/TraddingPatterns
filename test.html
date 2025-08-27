@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Strategies - Crypto Pattern Matcher</title>
+  <script type="module">
+    import { strategies } from './strategies.js';  // Import strategies
+
+    // Sample price data for testing
+    const priceData = [
+      { timestamp: 1631168400000, price: 40000 },
+      { timestamp: 1631172000000, price: 41000 },
+      { timestamp: 1631175600000, price: 42000 },
+      { timestamp: 1631179200000, price: 43000 },
+      { timestamp: 1631182800000, price: 44000 }
+    ];
+
+    // Function to display debug messages in the debug window
+    function showDebugData(message, data = null) {
+      const debugInfoElement = document.getElementById('debugInfo');
+      if (data) {
+        debugInfoElement.innerHTML += `${message}: <pre>${data}</pre><br>`; // Format for JSON data
+        console.log(`${message}: `, data); // Log data to console for debugging
+      } else {
+        debugInfoElement.innerHTML += `${message}<br>`; // Plain text messages
+        console.log(message); // Log plain text message to console
+      }
+      debugInfoElement.style.display = 'block'; // Show debug box
+    }
+
+    // Function to evaluate strategies against price data
+    function evaluateStrategies(priceData) {
+      showDebugData('Stage: Evaluating strategies...');
+      console.log('Evaluating strategies...');
+
+      const results = strategies.map(strategy => {
+        showDebugData(`Evaluating strategy: ${strategy.name}`);
+        console.log(`Evaluating strategy: ${strategy.name}`);
+
+        const result = strategy.evaluate(priceData);
+        showDebugData(`${strategy.name} - Signal: ${result.signal}, Match: ${result.match}`);
+        console.log(`${strategy.name} - Signal: ${result.signal}, Match: ${result.match}`);
+
+        return {
+          name: strategy.name,
+          description: strategy.description,
+          match: result.match,
+          signal: result.signal
+        };
+      });
+
+      // Display strategy results below the chart
+      const container = document.getElementById('strategyResults');
+      container.innerHTML = ''; // Clear previous results
+      results.forEach(result => {
+        const div = document.createElement('div');
+        div.classList.add('strategy');
+        div.classList.add(result.match ? 'match' : 'no-match');
+        div.innerHTML = `<strong>${result.name}</strong> (${result.signal}) - ${result.description}`;
+        container.appendChild(div);
+      });
+
+      showDebugData('Stage: Strategy evaluation completed');
+      console.log('Strategy evaluation completed');
+    }
+
+    // Function to initialize the page and evaluate strategies
+    window.onload = function() {
+      showDebugData('Stage: Loading data...');
+      console.log('Loading data...');
+      evaluateStrategies(priceData);  // Call strategy evaluation with sample price data
+    };
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .strategy { padding: 10px; margin: 5px 0; border-radius: 5px; }
+    .match { background: #c8e6c9; }
+    .no-match { background: #ffebee; }
+    .debug {
+      font-size: 14px;
+      color: #555;
+      margin-top: 10px;
+      height: 600px; /* Increased height for visibility */
+      overflow-y: auto;
+      background: #f1f1f1;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      display: block;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Strategy Evaluation</h1>
+
+  <div id="strategyResults"></div> <!-- Display strategy results -->
+
+  <!-- Debugging output with taller box -->
+  <div id="debugInfo" class="debug"></div>
+
+</body>
+</html>
+

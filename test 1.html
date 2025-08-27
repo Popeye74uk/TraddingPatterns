@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crypto Pattern Matcher - Test v1.14</title>
+  <title>Crypto Pattern Matcher - Test v1.12</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js from CDN -->
   <script src="strategies.js" defer></script> <!-- External strategies file -->
   <style>
@@ -13,14 +13,12 @@
     .chart-container { width: 65%; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); margin: auto; }
     .loading { font-size: 18px; color: red; }
     .debug { font-size: 14px; color: #555; margin-top: 10px; max-height: 300px; overflow-y: auto; background: #f1f1f1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; display: block; }
-    .strategies { margin-top: 20px; padding: 10px; background: #e0f7fa; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-    .strategy { padding: 10px; background: #ffffff; border-radius: 6px; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-    .strategy.match { background: #c8e6c9; } /* Green for matched */
-    .strategy.no-match { background: #ffebee; } /* Red for no match */
+    button.copy-btn { margin-top: 10px; padding: 10px 15px; background-color: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; display: block; margin-left: auto; margin-right: auto; }
+    button.copy-btn:hover { background-color: #1976d2; }
   </style>
 </head>
 <body>
-  <header>Crypto Pattern Matcher - Test v1.14</header>
+  <header>Crypto Pattern Matcher - Test v1.12</header>
 
   <div class="container">
     <div class="chart-container">
@@ -28,21 +26,21 @@
     </div>
     <div class="loading" id="loadingMessage">Loading Data...</div>
     <div id="debugInfo" class="debug"></div> <!-- Debugging output -->
-    <div id="strategyResults" class="strategies"></div> <!-- Strategy Results -->
+    <button id="copyBtn" class="copy-btn">Copy Debug Data</button> <!-- Copy Button -->
   </div>
 
   <script>
-    let version = 1.14; // Incremented version number
+    let version = 1.12; // Incremented version number
     document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
     let isDataFetched = false; // Flag to prevent redundant data fetches
     let isChartUpdated = false; // Flag to prevent redundant chart updates
 
-    // Function to fetch data for 1 day
-    async function fetchCryptoData(symbol = 'bitcoin') {
-      showDebugData('Stage: Starting data fetch for last 1 day...');
+    // Function to fetch dynamic data for different intervals
+    async function fetchCryptoData(symbol = 'bitcoin', days = 1) {
+      showDebugData(`Stage: Starting data fetch for last ${days} day(s)...`);
       try {
-        // Fetch data for the last 1 day (API will return daily data by default)
-        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=1`);
+        // Fetch data for the specified number of days (API will return daily data by default)
+        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`);
         
         // Log the full response to inspect the data
         const data = await res.json();
@@ -77,13 +75,13 @@
     }
 
     // Function to update the chart with dynamic data
-    async function updateChartWithFetchedData() {
+    async function updateChartWithFetchedData(days) {
       if (isChartUpdated) {
         showDebugData('Stage: Chart already updated');
         return; // Prevent updating the chart multiple times
       }
       
-      const priceData = await fetchCryptoData('bitcoin');
+      const priceData = await fetchCryptoData('bitcoin', days);
       
       if (priceData.length === 0) {
         showDebugData('Stage: No data to display on the chart');
@@ -148,24 +146,15 @@
         return;
       }
 
-      const results = strategies.map(strategy => {
-        const result = strategy.evaluate(priceData);
-        return {
-          name: strategy.name,
-          description: strategy.description,
-          match: result.match,
-          signal: result.signal
-        };
-      });
+      const results = strategies.map(strategy => strategy.evaluate(priceData));
 
-      const container = document.getElementById('strategyResults');
-      container.innerHTML = ''; // Clear previous results
+      const container = document.getElementById('debugInfo');
       results.forEach(result => {
-        const div = document.createElement('div');
-        div.classList.add('strategy');
-        div.classList.add(result.match ? 'match' : 'no-match');
-        div.innerHTML = `<strong>${result.name}</strong> (${result.signal}) - ${result.description}`;
-        container.appendChild(div);
+        if (result.match) {
+          showDebugData(`Match: ${result.name} - ${result.signal}`);
+        } else {
+          showDebugData(`No Match: ${result.name}`);
+        }
       });
 
       showDebugData('Stage: Strategy evaluation completed');
@@ -179,12 +168,27 @@
       }
       
       showDebugData('Stage: Start evaluating...');
-      await updateChartWithFetchedData(); // For last 1 day
+      // Call updateChartWithFetchedData for different intervals
+      await updateChartWithFetchedData(1); // For last 1 day
+      await updateChartWithFetchedData(0.1667); // For last 4 hours
+      await updateChartWithFetchedData(0.04167); // For last 1 hour (approximately)
       isDataFetched = true; // Mark that data has been fetched
     }
 
     // Initial call to evaluate and load the chart
     evaluate();
+
+    // Copy debug data to clipboard
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      const debugInfo = document.getElementById('debugInfo').innerText;
+      navigator.clipboard.writeText(debugInfo)
+        .then(() => {
+          alert('Debug data copied to clipboard!');
+        })
+        .catch(err => {
+          alert('Failed to copy debug data: ' + err);
+        });
+    });
   </script>
 </body>
 </html>
