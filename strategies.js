@@ -1,5 +1,3 @@
-// strategies.js
-
 export const strategies = [
   // 1. RSI Overbought/Oversold
   {
@@ -306,11 +304,7 @@ export const strategies = [
     }
   },
 
-  // More strategies can be added similarly...
-
-//];
-
-  // 28. Trend Following Strategy
+  // 28. Trend Following
   {
     name: "Trend Following",
     description: "This strategy follows the prevailing market trend.",
@@ -332,7 +326,7 @@ export const strategies = [
     }
   },
 
-  // 30. Moving Average Convergence Divergence Histogram (MACD Histogram)
+  // 30. MACD Histogram
   {
     name: "MACD Histogram",
     description: "Analyzes the difference between MACD and its signal line to identify trend momentum.",
@@ -422,6 +416,7 @@ export const strategies = [
     }
   },
 
+
   // 38. Rate of Change (ROC)
   {
     name: "Rate of Change (ROC)",
@@ -480,51 +475,24 @@ export const strategies = [
 
 // --- Helper Functions for Indicator Calculations ---
 
-// Calculate Exponential Moving Average (EMA)
-function calculateEMA(data, period = 14) {
-  const ema = [];
-  let multiplier = 2 / (period + 1);  // Calculate the multiplier
-  let previousEMA = data[0].price;   // Start with the first price as the initial EMA
+// Calculate Rate of Change (ROC)
+function calculateROC(data, period = 14) {
+  const change = data[data.length - 1].price - data[data.length - period].price;
+  return (change / data[data.length - period].price) * 100;
+}
 
+// Calculate On-Balance Volume (OBV)
+function calculateOBV(data) {
+  const obv = [0]; // Start with 0 OBV
   for (let i = 1; i < data.length; i++) {
-    const price = data[i].price;  // Get the price for each day
-    const emaValue = ((price - previousEMA) * multiplier) + previousEMA;  // EMA formula
-    ema.push(emaValue);           // Add the calculated EMA value
-    previousEMA = emaValue;      // Update the previous EMA for the next calculation
+    const priceChange = data[i].price - data[i - 1].price;
+    obv.push(obv[obv.length - 1] + (priceChange > 0 ? data[i].volume : (priceChange < 0 ? -data[i].volume : 0)));
   }
-
-  return ema;  // Return the calculated EMA values
+  return obv[obv.length - 1];
 }
 
-// Calculate MACD (Moving Average Convergence Divergence)
-function calculateMACD(data, shortPeriod = 12, longPeriod = 26, signalPeriod = 9) {
-  // Calculate the short-term and long-term EMAs
-  const shortEMA = calculateEMA(data, shortPeriod);  // Fast (short-period) EMA (12 days)
-  const longEMA = calculateEMA(data, longPeriod);    // Slow (long-period) EMA (26 days)
-
-  // Calculate the MACD line: This is the difference between shortEMA and longEMA
-  const macd = shortEMA.map((value, index) => value - (longEMA[index] || 0));  // Subtract the longEMA from the shortEMA
-
-  // Calculate the Signal line: This is a 9-day EMA of the MACD line
-  const signal = calculateEMA(macd, signalPeriod);  // Apply the EMA formula to the MACD line
-
-  // Return both the MACD line and Signal line
-  return { macd, signal };
-}
-
-// Calculate Simple Moving Average (SMA)
-function calculateSMA(data, period = 14) {
-  const sma = [];
-  for (let i = period - 1; i < data.length; i++) {
-    const slice = data.slice(i - period + 1, i + 1);
-    const average = slice.reduce((sum, point) => sum + point.price, 0) / period;
-    sma.push(average);
-  }
-  return sma;
-}
-
-// Calculate Relative Strength Index (RSI)
-function calculateRSI(data, period = 14) {
+// Calculate Relative Momentum Index (RMI)
+function calculateRMI(data, period = 14) {
   const gains = [], losses = [];
   let prevPrice = data[0].price;
   for (let i = 1; i < data.length; i++) {
@@ -539,77 +507,23 @@ function calculateRSI(data, period = 14) {
   return 100 - (100 / (1 + rs));
 }
 
-// Calculate Bollinger Bands
-function calculateBollingerBands(data, period = 14, multiplier = 2) {
-  const sma = calculateSMA(data, period);
-  const upperBand = sma.map((value, index) => value + multiplier * getStandardDeviation(data.slice(index, index + period)));
-  const lowerBand = sma.map((value, index) => value - multiplier * getStandardDeviation(data.slice(index, index + period)));
-  return { upperBand, lowerBand };
-}
-
-// Calculate Standard Deviation
-function getStandardDeviation(data) {
-  const mean = data.reduce((sum, point) => sum + point.price, 0) / data.length;
-  return Math.sqrt(data.reduce((sum, point) => sum + Math.pow(point.price - mean, 2), 0) / data.length);
-}
-
-// Calculate the Stochastic Oscillator (%K)
-function calculateStochasticOscillator(data, period = 14) {
-  const lowestLow = Math.min(...data.slice(-period).map(point => point.price));  // Lowest low in the period
-  const highestHigh = Math.max(...data.slice(-period).map(point => point.price)); // Highest high in the period
-  const currentClose = data[data.length - 1].price;  // The current closing price
-
-  const percentK = ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
-
-  return percentK;  // Return %K value
-}
-
-// Calculate Parabolic SAR (Stop and Reverse)
-function calculateParabolicSAR(data, accelerationFactor = 0.02, maxAccelerationFactor = 0.2) {
-  const sar = [];
-  let af = accelerationFactor;  // Starting acceleration factor
-  let ep = data[0].price;  // Initial extreme point (EP), starting with the first price
-  let sarPrev = data[0].price;  // Starting SAR value is the first price
-
-  for (let i = 1; i < data.length; i++) {
-    const currentPrice = data[i].price;  // Current closing price
-    let newSar = sarPrev + af * (ep - sarPrev);  // SAR formula
-
-    if (currentPrice > sarPrev) {
-      // If the price is going up, update EP to the highest high
-      ep = Math.max(ep, currentPrice);
-    } else {
-      // If the price is going down, update EP to the lowest low
-      ep = Math.min(ep, currentPrice);
-    }
-
-    // Ensure AF doesn’t go beyond the maximum value
-    af = Math.min(af + accelerationFactor, maxAccelerationFactor);
-
-    sar.push(newSar);  // Push the new SAR value
-
-    // Update SAR for the next calculation
-    sarPrev = newSar;
+// Calculate Moving Average Ribbon
+function calculateMovingAverageRibbon(data, period = 14) {
+  const ribbon = [];
+  for (let i = 1; i <= 5; i++) {
+    ribbon.push(calculateSMA(data, period * i));
   }
+  return ribbon;
+}
 
-  return sar;  // Return the array of Parabolic SAR values
+// Calculate Trix Indicator
+function calculateTrix(data, period = 14) {
+  const ema1 = calculateEMA(data, period);
+  const ema2 = calculateEMA(ema1, period);
+  const ema3 = calculateEMA(ema2, period);
+  return ema3[ema3.length - 1] - ema2[ema2.length - 1]; // Trix value
 }
 
 
-// Other Placeholder Functions (You can fill these in with specific formulas as needed)
-
-// Placeholder functions for other indicators, if required
-function calculateTEMA(data, period = 14) { /* Implement TEMA logic */ }
-function calculateVolumeOscillator(data) { /* Implement Volume Oscillator logic */ }
-function calculateKlingerOscillator(data) { /* Implement Klinger Oscillator logic */ }
-function calculateCCI(data) { /* Implement CCI logic */ }
-function calculateMcClellanOscillator(data) { /* Implement McClellan Oscillator logic */ }
-function calculateATR(data) { /* Implement ATR logic */ }
-function calculateDonchianChannels(data) { /* Implement Donchian Channels logic */ }
-function calculateROC(data) { /* Implement ROC logic */ }
-function calculateOBV(data) { /* Implement OBV logic */ }
-function calculateRMI(data) { /* Implement RMI logic */ }
-function calculateMovingAverageRibbon(data) { /* Implement Moving Average Ribbon logic */ }
-function calculateTrix(data) { /* Implement Trix Indicator logic */ }
 
 
