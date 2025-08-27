@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crypto Pattern Matcher - v2.3</title>
+  <title>Crypto Pattern Matcher - v2.4</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js from CDN -->
   <script src="strategies.js" defer></script> <!-- External strategies file -->
   <style>
@@ -20,7 +20,7 @@
   </style>
 </head>
 <body>
-  <header>Crypto Pattern Matcher - v2.3</header>
+  <header>Crypto Pattern Matcher - v2.4</header>
 
   <div class="container">
     <div class="chart-container">
@@ -33,7 +33,7 @@
   </div>
 
   <script>
-    let version = 2.3; // Incremented version number
+    let version = 2.4; // Incremented version number
     document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
     let isDataFetched = false; // Flag to prevent redundant data fetches
     let isChartUpdated = false; // Flag to prevent redundant chart updates
@@ -58,9 +58,10 @@
         // Try fetching data, with a 10-second timeout
         const res = await fetchWithTimeout(`https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=1`, 10000);
         
-        // Log the full response to inspect the data
+        // Log the full response to inspect the data (without printing price data)
         const data = await res.json();
-        showDebugData('API Response:', JSON.stringify(data, null, 2)); // Output the full API response
+        showDebugData('API Response received');
+        showDebugData(`Data: Prices count = ${data.prices ? data.prices.length : 0}`); // Show only count, not price data
 
         // Check if data.prices exists and has valid data
         if (!data.prices || !Array.isArray(data.prices)) {
@@ -70,7 +71,6 @@
         }
 
         showDebugData('Stage: Data fetched successfully');
-        showDebugData(`Data: Prices count = ${data.prices.length}`);
         return data.prices.map(([timestamp, price]) => ({ timestamp, price }));
       } catch (error) {
         showDebugData('Stage: Error fetching data');
@@ -82,10 +82,9 @@
     // Function to display debug messages
     function showDebugData(message, data = null) {
       const debugInfoElement = document.getElementById('debugInfo');
+      debugInfoElement.innerHTML += `${message}<br>`; // Always show message
       if (data) {
-        debugInfoElement.innerHTML += `${message}: <pre>${data}</pre><br>`; // Format for JSON data
-      } else {
-        debugInfoElement.innerHTML += `${message}<br>`; // Plain text messages
+        debugInfoElement.innerHTML += `<pre>${data}</pre><br>`; // Show additional data if needed
       }
       debugInfoElement.style.display = 'block'; // Show debug box
     }
@@ -157,8 +156,17 @@
     // Function to evaluate trading strategies
     function evaluateStrategies(priceData) {
       showDebugData('Stage: Evaluating strategies...');
+      
+      // Check if strategies are loaded
       if (!window.strategies || !Array.isArray(window.strategies)) {
-        showDebugData('Error: Strategies file not loaded properly.');
+        showDebugData('Error: Strategies file not loaded properly. Checking strategies...');
+
+        // Check if strategies are loaded correctly
+        if (window.strategies) {
+          showDebugData(`Strategies object is loaded. Count: ${window.strategies.length}`);
+        } else {
+          showDebugData('Error: Strategies object is undefined');
+        }
         return;
       }
 
