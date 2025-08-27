@@ -553,6 +553,18 @@ function getStandardDeviation(data) {
   return Math.sqrt(data.reduce((sum, point) => sum + Math.pow(point.price - mean, 2), 0) / data.length);
 }
 
+// Calculate the Stochastic Oscillator (%K)
+function calculateStochasticOscillator(data, period = 14) {
+  const lowestLow = Math.min(...data.slice(-period).map(point => point.price));  // Lowest low in the period
+  const highestHigh = Math.max(...data.slice(-period).map(point => point.price)); // Highest high in the period
+  const currentClose = data[data.length - 1].price;  // The current closing price
+
+  const percentK = ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
+
+  return percentK;  // Return %K value
+}
+
+
 // Other Placeholder Functions (You can fill these in with specific formulas as needed)
 
 // Placeholder functions for other indicators, if required
@@ -568,3 +580,4 @@ function calculateOBV(data) { /* Implement OBV logic */ }
 function calculateRMI(data) { /* Implement RMI logic */ }
 function calculateMovingAverageRibbon(data) { /* Implement Moving Average Ribbon logic */ }
 function calculateTrix(data) { /* Implement Trix Indicator logic */ }
+
