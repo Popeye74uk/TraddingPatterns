@@ -564,6 +564,37 @@ function calculateStochasticOscillator(data, period = 14) {
   return percentK;  // Return %K value
 }
 
+// Calculate Parabolic SAR (Stop and Reverse)
+function calculateParabolicSAR(data, accelerationFactor = 0.02, maxAccelerationFactor = 0.2) {
+  const sar = [];
+  let af = accelerationFactor;  // Starting acceleration factor
+  let ep = data[0].price;  // Initial extreme point (EP), starting with the first price
+  let sarPrev = data[0].price;  // Starting SAR value is the first price
+
+  for (let i = 1; i < data.length; i++) {
+    const currentPrice = data[i].price;  // Current closing price
+    let newSar = sarPrev + af * (ep - sarPrev);  // SAR formula
+
+    if (currentPrice > sarPrev) {
+      // If the price is going up, update EP to the highest high
+      ep = Math.max(ep, currentPrice);
+    } else {
+      // If the price is going down, update EP to the lowest low
+      ep = Math.min(ep, currentPrice);
+    }
+
+    // Ensure AF doesn’t go beyond the maximum value
+    af = Math.min(af + accelerationFactor, maxAccelerationFactor);
+
+    sar.push(newSar);  // Push the new SAR value
+
+    // Update SAR for the next calculation
+    sarPrev = newSar;
+  }
+
+  return sar;  // Return the array of Parabolic SAR values
+}
+
 
 // Other Placeholder Functions (You can fill these in with specific formulas as needed)
 
@@ -580,4 +611,5 @@ function calculateOBV(data) { /* Implement OBV logic */ }
 function calculateRMI(data) { /* Implement RMI logic */ }
 function calculateMovingAverageRibbon(data) { /* Implement Moving Average Ribbon logic */ }
 function calculateTrix(data) { /* Implement Trix Indicator logic */ }
+
 
