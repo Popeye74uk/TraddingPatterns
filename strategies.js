@@ -478,8 +478,41 @@ export const strategies = [
   }
 ];
 
-// Helper Functions for Indicator Calculations
+// --- Helper Functions for Indicator Calculations ---
 
+// Calculate Exponential Moving Average (EMA)
+function calculateEMA(data, period = 14) {
+  const ema = [];
+  let multiplier = 2 / (period + 1);  // Calculate the multiplier
+  let previousEMA = data[0].price;   // Start with the first price as the initial EMA
+
+  for (let i = 1; i < data.length; i++) {
+    const price = data[i].price;  // Get the price for each day
+    const emaValue = ((price - previousEMA) * multiplier) + previousEMA;  // EMA formula
+    ema.push(emaValue);           // Add the calculated EMA value
+    previousEMA = emaValue;      // Update the previous EMA for the next calculation
+  }
+
+  return ema;  // Return the calculated EMA values
+}
+
+// Calculate MACD (Moving Average Convergence Divergence)
+function calculateMACD(data, shortPeriod = 12, longPeriod = 26, signalPeriod = 9) {
+  // Calculate the short-term and long-term EMAs
+  const shortEMA = calculateEMA(data, shortPeriod);  // Fast (short-period) EMA (12 days)
+  const longEMA = calculateEMA(data, longPeriod);    // Slow (long-period) EMA (26 days)
+
+  // Calculate the MACD line: This is the difference between shortEMA and longEMA
+  const macd = shortEMA.map((value, index) => value - (longEMA[index] || 0));  // Subtract the longEMA from the shortEMA
+
+  // Calculate the Signal line: This is a 9-day EMA of the MACD line
+  const signal = calculateEMA(macd, signalPeriod);  // Apply the EMA formula to the MACD line
+
+  // Return both the MACD line and Signal line
+  return { macd, signal };
+}
+
+// Calculate Simple Moving Average (SMA)
 function calculateSMA(data, period = 14) {
   const sma = [];
   for (let i = period - 1; i < data.length; i++) {
@@ -490,75 +523,48 @@ function calculateSMA(data, period = 14) {
   return sma;
 }
 
-function calculateEMA(data, period = 14) {
-  const ema = [];
-  let multiplier = 2 / (period + 1);
-  let previousEMA = data[0].price;
-  for (let i = 1; i < data.length; i++) {
-    const price = data[i].price;
-    const emaValue = ((price - previousEMA) * multiplier) + previousEMA;
-    ema.push(emaValue);
-    previousEMA = emaValue;
-  }
-  return ema;
-}
-
+// Calculate Relative Strength Index (RSI)
 function calculateRSI(data, period = 14) {
-  // RSI calculation code...
+  const gains = [], losses = [];
+  let prevPrice = data[0].price;
+  for (let i = 1; i < data.length; i++) {
+    const change = data[i].price - prevPrice;
+    gains.push(change > 0 ? change : 0);
+    losses.push(change < 0 ? -change : 0);
+    prevPrice = data[i].price;
+  }
+  const avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  const avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  const rs = avgGain / avgLoss;
+  return 100 - (100 / (1 + rs));
 }
 
-function calculateMACD(data, shortPeriod = 12, longPeriod = 26, signalPeriod = 9) {
-  // MACD calculation code...
-}
-
+// Calculate Bollinger Bands
 function calculateBollingerBands(data, period = 14, multiplier = 2) {
-  // Bollinger Bands calculation code...
+  const sma = calculateSMA(data, period);
+  const upperBand = sma.map((value, index) => value + multiplier * getStandardDeviation(data.slice(index, index + period)));
+  const lowerBand = sma.map((value, index) => value - multiplier * getStandardDeviation(data.slice(index, index + period)));
+  return { upperBand, lowerBand };
 }
 
-function calculateTEMA(data, period = 14) {
-  // TEMA calculation code...
+// Calculate Standard Deviation
+function getStandardDeviation(data) {
+  const mean = data.reduce((sum, point) => sum + point.price, 0) / data.length;
+  return Math.sqrt(data.reduce((sum, point) => sum + Math.pow(point.price - mean, 2), 0) / data.length);
 }
 
-function calculateVolumeOscillator(data) {
-  // Volume Oscillator calculation code...
-}
+// Other Placeholder Functions (You can fill these in with specific formulas as needed)
 
-function calculateKlingerOscillator(data) {
-  // Klinger Oscillator calculation code...
-}
-
-function calculateCCI(data) {
-  // CCI calculation code...
-}
-
-function calculateMcClellanOscillator(data) {
-  // McClellan Oscillator calculation code...
-}
-
-function calculateATR(data) {
-  // ATR calculation code...
-}
-
-function calculateDonchianChannels(data) {
-  // Donchian Channels calculation code...
-}
-
-function calculateROC(data) {
-  // ROC calculation code...
-}
-
-function calculateOBV(data) {
-  // OBV calculation code...
-}
-
-function calculateRMI(data) {
-  // RMI calculation code...
-}
-
-function calculateMovingAverageRibbon(data) {
-  // Moving Average Ribbon calculation code...
-}
-
-function calculateTrix(data) {
-  // Trix Indicator calculation code...
-}
+// Placeholder functions for other indicators, if required
+function calculateTEMA(data, period = 14) { /* Implement TEMA logic */ }
+function calculateVolumeOscillator(data) { /* Implement Volume Oscillator logic */ }
+function calculateKlingerOscillator(data) { /* Implement Klinger Oscillator logic */ }
+function calculateCCI(data) { /* Implement CCI logic */ }
+function calculateMcClellanOscillator(data) { /* Implement McClellan Oscillator logic */ }
+function calculateATR(data) { /* Implement ATR logic */ }
+function calculateDonchianChannels(data) { /* Implement Donchian Channels logic */ }
+function calculateROC(data) { /* Implement ROC logic */ }
+function calculateOBV(data) { /* Implement OBV logic */ }
+function calculateRMI(data) { /* Implement RMI logic */ }
+function calculateMovingAverageRibbon(data) { /* Implement Moving Average Ribbon logic */ }
+function calculateTrix(data) { /* Implement Trix Indicator logic */ }
