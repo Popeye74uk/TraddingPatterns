@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Crypto Pattern Matcher</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 1em; }
+    .strategy { margin-bottom: 1em; padding: 0.5em; border: 1px solid #ccc; }
+    .match { background: #e0ffe0; }
+    .no-match { background: #ffe0e0; }
+  </style>
+</head>
+<body>
+  <h1>Crypto Pattern Matcher</h1>
+  <p>Fetching data…</p>
+  <div id="results"></div>
+
+  <script>
+    async function fetchCryptoData(symbol = 'BTC') {
+      // replace with a free API like freecryptoapi.com or DIA
+      const res = await fetch('https://api.freecryptoapi.com/getTechnicalAnalysis?symbol=' + symbol);
+      return res.json();
+    }
+
+    const strategies = [
+      {
+        name: 'RSI Overbought/Oversold',
+        check: data => data.rsi && (data.rsi > 70 ? 'Overbought' : (data.rsi < 30 ? 'Oversold' : false)),
+        desc: 'RSI indicates possible reversal zones'
+      },
+      {
+        name: 'MACD Cross',
+        check: data => data.macd && data.signal && (data.macd > data.signal ? 'Bullish Cross' : (data.macd < data.signal ? 'Bearish Cross' : false)),
+        desc: 'MACD line crossing signal line'
+      },
+      {
+        name: 'Trend Following (MA Crossover)',
+        check: data => data.ma_short && data.ma_long && (data.ma_short > data.ma_long ? 'Uptrend' : (data.ma_short < data.ma_long ? 'Downtrend' : false)),
+        desc: 'Short MA vs Long MA'
+      },
+      // Additional strategies (e.g., scalping, swing, arbitrage) would be implemented differently
+    ];
+
+    async function evaluate() {
+      const symbol = 'BTC'; // can be dynamic
+      const apiData = await fetchCryptoData(symbol);
+
+      const container = document.getElementById('results');
+      container.innerHTML = '<h2>Results for ' + symbol + '</h2>';
+
+      strategies.forEach(s => {
+        const result = s.check(apiData);
+        const div = document.createElement('div');
+        div.className = 'strategy ' + (result ? 'match' : 'no-match');
+        div.innerHTML = '<strong>' + s.name + '</strong>: ' + (result ? result : 'No signal') + '<br><em>' + s.desc + '</em>';
+        container.appendChild(div);
+      });
+    }
+
+    evaluate();
+  </script>
+</body>
+</html>
