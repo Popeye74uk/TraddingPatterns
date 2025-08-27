@@ -3,153 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crypto Pattern Matcher - Test v1.14</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js from CDN -->
-  <script src="strategies.js" defer></script> <!-- External strategies file -->
-  <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
-    header { text-align: center; padding: 20px 0; font-size: 2rem; background: #2196f3; color: white; border-radius: 8px; }
-    .container { display: flex; flex-direction: row; gap: 20px; justify-content: space-between; margin-top: 30px; }
-    .chart-container { width: 65%; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); margin: auto; }
-    .loading { font-size: 18px; color: red; }
-    .debug { font-size: 14px; color: #555; margin-top: 10px; max-height: 300px; overflow-y: auto; background: #f1f1f1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; display: block; }
-    .strategies { margin-top: 20px; padding: 10px; background: #e0f7fa; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-    .strategy { padding: 10px; background: #ffffff; border-radius: 6px; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-    .strategy.match { background: #c8e6c9; } /* Green for matched */
-    .strategy.no-match { background: #ffebee; } /* Red for no match */
-  </style>
-</head>
-<body>
-  <header>Crypto Pattern Matcher - Test v1.14</header>
+  <title>Test Strategies - Crypto Pattern Matcher</title>
+  <script type="module">
+    import { strategies } from './strategies.js';  // Import strategies
 
-  <div class="container">
-    <div class="chart-container">
-      <canvas id="priceChart" width="800" height="400"></canvas> <!-- Ensuring size is set -->
-    </div>
-    <div class="loading" id="loadingMessage">Loading Data...</div>
-    <div id="debugInfo" class="debug"></div> <!-- Debugging output -->
-    <div id="strategyResults" class="strategies"></div> <!-- Strategy Results -->
-  </div>
+    // Sample price data for testing
+    const priceData = [
+      { timestamp: 1631168400000, price: 40000 },
+      { timestamp: 1631172000000, price: 41000 },
+      { timestamp: 1631175600000, price: 42000 },
+      { timestamp: 1631179200000, price: 43000 },
+      { timestamp: 1631182800000, price: 44000 }
+    ];
 
-  <script>
-    let version = 1.14; // Incremented version number
-    document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
-    let isDataFetched = false; // Flag to prevent redundant data fetches
-    let isChartUpdated = false; // Flag to prevent redundant chart updates
-
-    // Function to fetch data for 1 day
-    async function fetchCryptoData(symbol = 'bitcoin') {
-      showDebugData('Stage: Starting data fetch for last 1 day...');
-      try {
-        // Fetch data for the last 1 day (API will return daily data by default)
-        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=1`);
-        
-        // Log the full response to inspect the data
-        const data = await res.json();
-        showDebugData('API Response:', JSON.stringify(data, null, 2)); // Output the full API response
-
-        // Check if data.prices exists and has valid data
-        if (!data.prices || !Array.isArray(data.prices)) {
-          showDebugData('Stage: Error - Invalid data format');
-          showDebugData('Error: data.prices is undefined or not an array');
-          return [];
-        }
-
-        showDebugData('Stage: Data fetched successfully');
-        showDebugData(`Data: Prices count = ${data.prices.length}`);
-        return data.prices.map(([timestamp, price]) => ({ timestamp, price }));
-      } catch (error) {
-        showDebugData('Stage: Error fetching data');
-        showDebugData(`Error: ${error.message}`);
-        return [];
-      }
-    }
-
-    // Function to display debug messages
+    // Function to display debug messages in the debug window
     function showDebugData(message, data = null) {
       const debugInfoElement = document.getElementById('debugInfo');
       if (data) {
         debugInfoElement.innerHTML += `${message}: <pre>${data}</pre><br>`; // Format for JSON data
+        console.log(`${message}: `, data); // Log data to console for debugging
       } else {
         debugInfoElement.innerHTML += `${message}<br>`; // Plain text messages
+        console.log(message); // Log plain text message to console
       }
       debugInfoElement.style.display = 'block'; // Show debug box
     }
 
-    // Function to update the chart with dynamic data
-    async function updateChartWithFetchedData() {
-      if (isChartUpdated) {
-        showDebugData('Stage: Chart already updated');
-        return; // Prevent updating the chart multiple times
-      }
-      
-      const priceData = await fetchCryptoData('bitcoin');
-      
-      if (priceData.length === 0) {
-        showDebugData('Stage: No data to display on the chart');
-        return;
-      }
-
-      showDebugData('Stage: Updating chart with new data');
-      const ctxPrice = document.getElementById('priceChart').getContext('2d');
-
-      if (!ctxPrice) {
-        showDebugData('Stage: Error getting canvas context');
-        return;
-      }
-
-      showDebugData(`Canvas size: Width = ${document.getElementById('priceChart').width}, Height = ${document.getElementById('priceChart').height}`);
-      
-      new Chart(ctxPrice, {
-        type: 'line',
-        data: {
-          labels: priceData.map(item => new Date(item.timestamp).toLocaleTimeString()), // Use time format for the x-axis
-          datasets: [{
-            label: 'Price (USD)',
-            data: priceData.map(item => item.price),
-            borderColor: 'rgba(75, 192, 192, 1)',
-            fill: false
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'Time'
-              }
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Price (USD)'
-              }
-            }
-          }
-        }
-      });
-
-      // Hide loading message once chart is loaded
-      document.getElementById('loadingMessage').style.display = 'none';
-      isChartUpdated = true; // Mark the chart as updated
-
-      showDebugData('Stage: Chart updated successfully');
-
-      // Evaluate the trading strategies against the fetched data
-      evaluateStrategies(priceData);
-    }
-
-    // Function to evaluate trading strategies
+    // Function to evaluate strategies against price data
     function evaluateStrategies(priceData) {
       showDebugData('Stage: Evaluating strategies...');
-      if (!window.strategies || !Array.isArray(window.strategies)) {
-        showDebugData('Error: Strategies file not loaded properly.');
-        return;
-      }
+      console.log('Evaluating strategies...');
 
       const results = strategies.map(strategy => {
+        showDebugData(`Evaluating strategy: ${strategy.name}`);
+        console.log(`Evaluating strategy: ${strategy.name}`);
+
         const result = strategy.evaluate(priceData);
+        showDebugData(`${strategy.name} - Signal: ${result.signal}, Match: ${result.match}`);
+        console.log(`${strategy.name} - Signal: ${result.signal}, Match: ${result.match}`);
+
         return {
           name: strategy.name,
           description: strategy.description,
@@ -158,6 +50,7 @@
         };
       });
 
+      // Display strategy results below the chart
       const container = document.getElementById('strategyResults');
       container.innerHTML = ''; // Clear previous results
       results.forEach(result => {
@@ -169,22 +62,44 @@
       });
 
       showDebugData('Stage: Strategy evaluation completed');
+      console.log('Strategy evaluation completed');
     }
 
-    // Function to prevent redundant evaluations (e.g., multiple fetches and chart updates)
-    async function evaluate() {
-      if (isDataFetched) {
-        showDebugData('Stage: Data already fetched');
-        return; // Prevent redundant data fetching
-      }
-      
-      showDebugData('Stage: Start evaluating...');
-      await updateChartWithFetchedData(); // For last 1 day
-      isDataFetched = true; // Mark that data has been fetched
-    }
-
-    // Initial call to evaluate and load the chart
-    evaluate();
+    // Function to initialize the page and evaluate strategies
+    window.onload = function() {
+      showDebugData('Stage: Loading data...');
+      console.log('Loading data...');
+      evaluateStrategies(priceData);  // Call strategy evaluation with sample price data
+    };
   </script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .strategy { padding: 10px; margin: 5px 0; border-radius: 5px; }
+    .match { background: #c8e6c9; }
+    .no-match { background: #ffebee; }
+    .debug {
+      font-size: 14px;
+      color: #555;
+      margin-top: 10px;
+      height: 600px; /* Increased height for visibility */
+      overflow-y: auto;
+      background: #f1f1f1;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      display: block;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Strategy Evaluation</h1>
+
+  <div id="strategyResults"></div> <!-- Display strategy results -->
+
+  <!-- Debugging output with taller box -->
+  <div id="debugInfo" class="debug"></div>
+
 </body>
 </html>
