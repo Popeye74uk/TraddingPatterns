@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crypto Pattern Matcher - v1.6</title>
+  <title>Crypto Pattern Matcher - v2.0</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js from CDN -->
   <script src="strategies.js" defer></script> <!-- External strategies file -->
   <style>
     body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
     header { text-align: center; padding: 20px 0; font-size: 2rem; background: #2196f3; color: white; border-radius: 8px; }
-    .container { display: flex; flex-direction: row; gap: 20px; justify-content: space-between; margin-top: 30px; }
+    .container { display: flex; flex-direction: column; gap: 20px; justify-content: space-between; margin-top: 30px; }
     .chart-container { width: 65%; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); margin: auto; }
     .loading { font-size: 18px; color: red; }
     .debug { font-size: 14px; color: #555; margin-top: 10px; height: 400px; overflow-y: auto; background: #f1f1f1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; display: block; width: 100%; }
-    .strategies { margin-top: 20px; padding: 10px; background: #e0f7fa; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 30%; }
+    .strategies { margin-top: 20px; padding: 10px; background: #e0f7fa; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 100%; }
     .strategy { padding: 10px; background: #ffffff; border-radius: 6px; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
     .strategy.match { background: #c8e6c9; } /* Green for matched */
     .strategy.no-match { background: #ffebee; } /* Red for no match */
   </style>
 </head>
 <body>
-  <header>Crypto Pattern Matcher - Test v1.14</header>
+  <header>Crypto Pattern Matcher - v2.0</header>
 
   <div class="container">
     <div class="chart-container">
@@ -28,11 +28,12 @@
     </div>
     <div class="loading" id="loadingMessage">Loading Data...</div>
     <div id="debugInfo" class="debug"></div> <!-- Debugging output -->
+    <!-- Strategy Results moved below the chart -->
     <div id="strategyResults" class="strategies"></div> <!-- Strategy results output -->
   </div>
 
   <script>
-    let version = 1.14; // Incremented version number
+    let version = 2.0; // Incremented version number
     document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
     let isDataFetched = false; // Flag to prevent redundant data fetches
     let isChartUpdated = false; // Flag to prevent redundant chart updates
@@ -188,5 +189,3 @@
   </script>
 </body>
 </html>
-
-
