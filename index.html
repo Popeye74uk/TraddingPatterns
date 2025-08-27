@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crypto Pattern Matcher - v2.2</title>
+  <title>Crypto Pattern Matcher - v2.3</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js from CDN -->
   <script src="strategies.js" defer></script> <!-- External strategies file -->
   <style>
@@ -20,25 +20,23 @@
   </style>
 </head>
 <body>
-  <header>Crypto Pattern Matcher - v2.2</header>
+  <header>Crypto Pattern Matcher - v2.3</header>
 
   <div class="container">
     <div class="chart-container">
       <canvas id="priceChart" width="800" height="400"></canvas> <!-- Chart container -->
     </div>
     <div class="loading" id="loadingMessage">Loading Data...</div>
+    <!-- Removed old strategy box -->
+    <div id="strategyResults" class="strategies"></div> <!-- New strategy results output -->
     <div id="debugInfo" class="debug"></div> <!-- Debugging output -->
-    <!-- Strategy Results moved below the chart -->
-    <div id="strategyResults" class="strategies"></div> <!-- Strategy results output -->
   </div>
 
   <script>
-    let version = 2.2; // Incremented version number
+    let version = 2.3; // Incremented version number
     document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
     let isDataFetched = false; // Flag to prevent redundant data fetches
     let isChartUpdated = false; // Flag to prevent redundant chart updates
-    const maxRetries = 3; // Maximum retry attempts
-    let retryCount = 0; // Retry counter
 
     // Function to fetch data for 1 day with retry logic
     async function fetchCryptoData(symbol = 'bitcoin') {
@@ -75,16 +73,9 @@
         showDebugData(`Data: Prices count = ${data.prices.length}`);
         return data.prices.map(([timestamp, price]) => ({ timestamp, price }));
       } catch (error) {
-        if (retryCount < maxRetries) {
-          retryCount++;
-          showDebugData(`Stage: Retry ${retryCount} - Error: ${error.message}`);
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
-          return fetchCryptoData(symbol); // Retry the fetch
-        } else {
-          showDebugData('Stage: Error fetching data');
-          showDebugData(`Error: ${error.message}`);
-          return [];
-        }
+        showDebugData('Stage: Error fetching data');
+        showDebugData(`Error: ${error.message}`);
+        return [];
       }
     }
 
@@ -171,7 +162,7 @@
         return;
       }
 
-      const results = strategies.map(strategy => {
+      const results = window.strategies.map(strategy => {
         const result = strategy.evaluate(priceData);
         return {
           name: strategy.name,
