@@ -430,6 +430,81 @@ export const strategies = [
         return { match: false, signal: 'Error', description: 'Detrended Price Oscillator' };
       }
     }
+  },
+  {
+    name: "Money Flow Index (MFI)",
+    description: "Combines price and volume to detect overbought/oversold conditions.",
+    evaluate: (data) => {
+      try {
+        const mfi = calculateMFI(data);
+        const signal = mfi > 80 ? 'Overbought' : (mfi < 20 ? 'Oversold' : 'Neutral');
+        return { match: signal !== 'Neutral', signal, description: 'Money Flow Index' };
+      } catch (error) {
+        console.error('Error in MFI evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Money Flow Index' };
+      }
+    }
+  },
+  {
+    name: "Donchian Channels",
+    description: "Identifies breakouts based on highest highs and lowest lows.",
+    evaluate: (data) => {
+      try {
+        const { upperBand, lowerBand } = calculateDonchianChannels(data);
+        const lastPrice = data[data.length - 1].price || 0;
+        const signalUp = lastPrice > upperBand[upperBand.length - 1] ? 'Bullish Breakout' : 'No Signal';
+        const signalDown = lastPrice < lowerBand[lowerBand.length - 1] ? 'Bearish Breakout' : 'No Signal';
+        return { match: signalUp !== 'No Signal' || signalDown !== 'No Signal', signal: `${signalUp} | ${signalDown}`, description: 'Donchian Channels' };
+      } catch (error) {
+        console.error('Error in Donchian Channels evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Donchian Channels' };
+      }
+    }
+  },
+  {
+    name: "Klinger Oscillator",
+    description: "Measures volume-based trend strength.",
+    evaluate: (data) => {
+      try {
+        const klinger = calculateKlinger(data);
+        const signal = klinger > 0 ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Klinger Oscillator' };
+      } catch (error) {
+        console.error('Error in Klinger Oscillator evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Klinger Oscillator' };
+      }
+    }
+  },
+  {
+    name: "ATR Breakout",
+    description: "Signals volatility-based breakouts.",
+    evaluate: (data) => {
+      try {
+        const atr = calculateATR(data);
+        const lastPrice = data[data.length - 1].price || 0;
+        const prevPrice = data[data.length - 2].price || 0;
+        const signal = Math.abs(lastPrice - prevPrice) > atr[atr.length - 1] ? 'Breakout' : 'No Breakout';
+        return { match: signal === 'Breakout', signal, description: 'ATR Breakout' };
+      } catch (error) {
+        console.error('Error in ATR Breakout evaluation:', error);
+        return { match: false, signal: 'Error', description: 'ATR Breakout' };
+      }
+    }
+  },
+  {
+    name: "Hull Moving Average (HMA)",
+    description: "A faster, smoother moving average for trend detection.",
+    evaluate: (data) => {
+      try {
+        const hma = calculateHMA(data);
+        const currentPrice = data[data.length - 1].price || 0;
+        const signal = currentPrice > hma[hma.length - 1] ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Hull Moving Average' };
+      } catch (error) {
+        console.error('Error in HMA evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Hull Moving Average' };
+      }
+    }
   }
 ];
 
@@ -873,6 +948,92 @@ function calculateDPO(data, period = 20) {
   const offset = Math.floor(period / 2) + 1;
   const sma = calculateSMA(data, period);
   return (data[data.length - 1].price || 0) - sma[sma.length - 1 - offset];
+}
+
+function calculateMFI(data, period = 14) {
+  if (!data || data.length < period + 1) return 0;
+  let positiveMF = 0, negativeMF = 0;
+  for (let i = data.length - period; i < data.length; i++) {
+    const typicalPrice = ((data[i].high || data[i].price || 0) + (data[i].low || data[i].price || 0) + (data[i].price || 0)) / 3;
+    const prevTypicalPrice = i > 0 ? ((data[i - 1].high || data[i - 1].price || 0) + (data[i - 1].low || data[i - 1].price || 0) + (data[i - 1].price || 0)) / 3 : typicalPrice;
+    const rawMF = typicalPrice * (data[i].volume || 0);
+    if (typicalPrice > prevTypicalPrice) {
+      positiveMF += rawMF;
+    } else if (typicalPrice < prevTypicalPrice) {
+      negativeMF += rawMF;
+    }
+  }
+  const moneyRatio = negativeMF === 0 ? 100 : positiveMF / negativeMF;
+  return 100 - (100 / (1 + moneyRatio));
+}
+
+function calculateDonchianChannels(data, period = 20) {
+  if (!data || data.length < period) return { upperBand: Array(data ? data.length : 0).fill(0), lowerBand: Array(data ? data.length : 0).fill(0) };
+  const channels = { upperBand: [], lowerBand: [] };
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      channels.upperBand.push(0);
+      channels.lowerBand.push(0);
+    } else {
+      const periodData = data.slice(i - period + 1, i + 1);
+      channels.upperBand.push(Math.max(...periodData.map(d => d.high || d.price || 0)));
+      channels.lowerBand.push(Math.min(...periodData.map(d => d.low || d.price || 0)));
+    }
+  }
+  return channels;
+}
+
+function calculateKlinger(data, period = 34, signalPeriod = 13) {
+  if (!data || data.length < period + signalPeriod) return 0;
+  let klinger = 0;
+  for (let i = 1; i < data.length; i++) {
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const close = data[i].price || 0;
+    const prevClose = data[i - 1].price || 0;
+    const trend = close > prevClose ? 1 : (close < prevClose ? -1 : 0);
+    const dm = high - low;
+    const cm = i > 1 ? (data[i - 1].high || data[i - 1].price || 0) - (data[i - 1].low || data[i - 1].price || 0) : dm;
+    const vf = data[i].volume || 0 * (trend * dm / (cm === 0 ? 1 : cm));
+    klinger = i === 1 ? vf : klinger + vf;
+  }
+  const klingerValues = data.slice(1).map((d, i) => {
+    const high = d.high || d.price || 0;
+    const low = d.low || d.price || 0;
+    const close = d.price || 0;
+    const prevClose = data[i].price || 0;
+    const trend = close > prevClose ? 1 : (close < prevClose ? -1 : 0);
+    const dm = high - low;
+    const cm = i > 0 ? (data[i].high || data[i].price || 0) - (data[i].low || data[i].price || 0) : dm;
+    return d.volume || 0 * (trend * dm / (cm === 0 ? 1 : cm));
+  });
+  const emaKlinger = calculateEMA(klingerValues.map(v => ({ price: v })), period);
+  return emaKlinger[emaKlinger.length - 1];
+}
+
+function calculateHMA(data, period = 9) {
+  if (!data || data.length < period * 2) return Array(data ? data.length : 0).fill(0);
+  const wmaShort = calculateWMA(data, Math.floor(period / 2));
+  const wmaLong = calculateWMA(data, period);
+  const rawHMA = wmaShort.map((short, i) => 2 * short - wmaLong[i]);
+  return calculateWMA(rawHMA.map(v => ({ price: v })), Math.floor(Math.sqrt(period)));
+}
+
+function calculateWMA(data, period) {
+  if (!data || data.length < period) return Array(data ? data.length : 0).fill(0);
+  const wma = [];
+  const weights = Array.from({ length: period }, (_, i) => i + 1);
+  const weightSum = weights.reduce((acc, w) => acc + w, 0);
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      wma.push(0);
+    } else {
+      const prices = data.slice(i - period + 1, i + 1).map(d => d.price || 0);
+      const weightedSum = prices.reduce((acc, price, j) => acc + price * weights[j], 0);
+      wma.push(weightedSum / weightSum);
+    }
+  }
+  return wma;
 }
 
 // End of code
