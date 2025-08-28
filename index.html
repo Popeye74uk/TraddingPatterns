@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoinScan v3.3</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="strategies.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #121826;
+      --surface-color: #1f2937;
+      --primary-color: #3b82f6;
+      --text-color: #f9fafb;
+      --text-muted-color: #9ca3af;
+      --border-color: #374151;
+      --success-bg: rgba(16, 185, 129, 0.1);
+      --success-border: #10b981;
+      --danger-bg: rgba(239, 68, 68, 0.1);
+      --danger-border: #ef4444;
+      --warning-bg: rgba(245, 158, 11, 0.1);
+      --warning-border: #f59e0b;
+      --neutral-bg: rgba(107, 114, 128, 0.1);
+      --neutral-border: #6b7280;
+      --font-family: 'Poppins', sans-serif;
+    }
+    body {
+      font-family: var(--font-family);
+      background: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+    }
+    header {
+      text-align: center;
+      padding: 15px 30px;
+      font-size: 2rem;
+      font-weight: 700;
+      background: var(--surface-color);
+      color: var(--text-color);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      /* MODIFICATION: Removed margin-bottom to rely on the container's gap for spacing */
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--surface-color);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+    }
+    .controls-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .control-group { display: flex; align-items: center; gap: 8px; }
+    .controls-container label { color: var(--text-muted-color); font-weight: 600; }
+    .controls-container select, .controls-container button {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: var(--font-family);
+      font-size: 1rem;
+    }
+    .controls-container button {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+    }
+    .controls-container button:hover { background-color: #2563eb; }
+    .chart-title {
+      margin-top: 0;
+      margin-bottom: 10px;
+      text-align: center;
+      font-weight: 600;
+      color: var(--text-muted-color);
+    }
+    .timestamp {
+      text-align: center;
+      margin-top: -5px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: var(--text-muted-color);
+    }
+    #loadingMessage {
+      display: none; /* Hidden by default, shown via JS */
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      font-size: 1.2rem;
+      color: var(--text-muted-color);
+    }
+    .spinner {
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      border-top: 5px solid var(--primary-color);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .sentiment-card { padding: 20px; }
+    .sentiment-text { text-align: center; margin-bottom: 15px; font-size: 1.1rem; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+    .sentiment-text span { display: inline-flex; align-items: center; gap: 6px; }
+    .sentiment-text .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .sentiment-bar { display: flex; height: 15px; width: 100%; border-radius: 8px; overflow: hidden; background-color: #374151; }
+    .bar-segment { transition: width 0.5s ease-in-out; }
+    .bar-segment.buy, .dot.buy { background-color: var(--success-border); }
+    .bar-segment.sell, .dot.sell { background-color: var(--danger-border); }
+    .bar-segment.warn, .dot.warn { background-color: var(--warning-border); }
+    .bar-segment.neutral, .dot.neutral { background-color: var(--neutral-border); }
+    .strategies { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+    .strategy {
+      padding: 15px; border-radius: 8px; border: 1px solid;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .strategy:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); }
+    .strategy-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+    .strategy-header strong { color: var(--text-color); display: flex; align-items: center; gap: 8px; }
+    .strategy-header .signal-text { font-size: 0.85em; font-weight: 400; color: var(--text-muted-color); white-space: nowrap; margin-left: 8px; }
+    .signal-icon { font-size: 1.2em; }
+    .strategy-description { font-size: 0.9em; color: var(--text-muted-color); }
+    .strategy.signal-buy { background: var(--success-bg); border-color: var(--success-border); }
+    .strategy.signal-sell { background: var(--danger-bg); border-color: var(--danger-border); }
+    .strategy.signal-warn { background: var(--warning-bg); border-color: var(--warning-border); }
+    .strategy.signal-neutral { background: var(--neutral-bg); border-color: var(--neutral-border); }
+    .debug-toggle-container { display: flex; justify-content: center; margin-top: 10px; }
+    #debugToggle {
+      background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-muted-color);
+      font-size: 1rem; font-family: var(--font-family); cursor: pointer; padding: 8px 16px; border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    #debugToggle:hover { background: var(--border-color); color: var(--text-color); }
+    .debug {
+      font-size: 14px; font-family: monospace; color: var(--text-muted-color); height: 400px; overflow-y: auto;
+      background: #0d1117; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);
+    }
+    .debug.hidden { display: none; }
+    @media (max-width: 768px) {
+      body { padding: 10px; }
+      header { font-size: 1.75rem; padding: 15px; }
+      .chart-title { font-size: 1.2rem; }
+      .card { padding: 15px; }
+      .strategies { grid-template-columns: 1fr; }
+      /* MODIFICATION: Added styles for mobile controls layout */
+      .controls-container {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .control-group {
+        justify-content: space-between;
+      }
+      .controls-container button {
+        margin-top: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>CoinScan</header>
+
+    <div class="card">
+      <div class="controls-container">
+        <div class="control-group">
+          <label for="coin-select">Coin:</label>
+          <select id="coin-select">
+            <option value="avalanche-2">Avalanche</option>
+            <option value="binancecoin">Binance Coin</option>
+            <option value="bitcoin" selected>Bitcoin</option>
+            <option value="cardano">Cardano</option>
+            <option value="dogecoin">Dogecoin</option>
+            <option value="ethereum">Ethereum</option>
+            <option value="litecoin">Litecoin</option>
+            <option value="polkadot">Polkadot</option>
+            <option value="ripple">Ripple</option>
+            <option value="solana">Solana</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="timeframe-select">Timeframe:</label>
+          <select id="timeframe-select">
+            <option value="1" selected>1 Day</option>
+            <option value="7">7 Days</option>
+            <option value="30">30 Days</option>
+            <option value="90">90 Days</option>
+          </select>
+        </div>
+        <button id="run-analysis">Analyze</button>
+      </div>
+    </div>
+
+    <div class="chart-container card">
+      <h2 id="chartTitle" class="chart-title"></h2>
+      <p id="lastUpdated" class="timestamp"></p>
+      <div id="loadingMessage"><div class="spinner"></div></div>
+      <canvas id="priceChart"></canvas>
+    </div>
+
+    <div id="sentiment-summary" class="card sentiment-card" style="display: none;">
+      <div id="sentiment-text" class="sentiment-text"></div>
+      <div class="sentiment-bar">
+        <div id="bar-buy" class="bar-segment buy"></div>
+        <div id="bar-sell" class="bar-segment sell"></div>
+        <div id="bar-warn" class="bar-segment warn"></div>
+        <div id="bar-neutral" class="bar-segment neutral"></div>
+      </div>
+    </div>
+    <div id="strategyResults" class="strategies"></div>
+    <div class="debug-toggle-container">
+      <button id="debugToggle" title="Toggle Debug Panel">🐞 Show/Hide Debug</button>
+    </div>
+    <div id="debugInfo" class="debug hidden"></div>
+  </div>
+  <script type="module">
+    import { strategies } from './strategies.js';
+
+    let version = 3.3;
+    document.title = `CoinScan v${version.toFixed(1)}`;
+    let priceChart = null;
+
+    const coinSelect = document.getElementById('coin-select');
+    const timeframeSelect = document.getElementById('timeframe-select');
+    const runButton = document.getElementById('run-analysis');
+    const loadingElement = document.getElementById('loadingMessage');
+    const chartCanvas = document.getElementById('priceChart');
+    const chartTitle = document.getElementById('chartTitle');
+    const lastUpdatedElement = document.getElementById('lastUpdated');
+    const sentimentSummary = document.getElementById('sentiment-summary');
+
+    async function fetchCryptoData(symbol, days) {
+      showDebugData(`Stage: Starting data fetch for ${symbol}, last ${days} day(s)...`);
+      const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!res.ok) throw new Error(`API Error: ${data.error || 'Failed to fetch'}`);
+        if (!data.prices || !Array.isArray(data.prices)) throw new Error('Invalid data format from API');
+        showDebugData('Stage: Data fetched successfully');
+        return data.prices.map(([timestamp, price]) => ({ timestamp, price }));
+      } catch (error) {
+        showDebugData(`Error fetching data: ${error.message}`);
+        return [];
+      }
+    }
+
+    function showDebugData(message, data = null) {
+      const debugInfoElement = document.getElementById('debugInfo');
+      if (debugInfoElement) {
+        debugInfoElement.innerHTML += `${message}<br>`;
+        if (data) debugInfoElement.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre><br>`;
+      }
+    }
+    
+    function getSignalVisuals(signal) {
+      if (typeof signal !== 'string') return { className: 'signal-neutral', icon: '—', category: 'neutral' };
+      const s = signal.toLowerCase();
+      if (s.includes('bullish') || s.includes('oversold')) return { className: 'signal-buy', icon: '▲', category: 'buy' };
+      if (s.includes('bearish')) return { className: 'signal-sell', icon: '▼', category: 'sell' };
+      if (s.includes('overbought') || s.includes('reversal') || s.includes('breakout')) return { className: 'signal-warn', icon: '⚠️', category: 'warn' };
+      return { className: 'signal-neutral', icon: '—', category: 'neutral' };
+    }
+
+    function evaluateStrategies(priceData) {
+      showDebugData('Stage: Evaluating strategies...');
+      const results = strategies.map(strategy => ({ name: strategy.name, description: strategy.description, ...strategy.evaluate(priceData) }));
+      results.sort((a, b) => (a.signal.includes('Bullish') && !b.signal.includes('Bullish')) ? -1 : 1);
+      
+      const container = document.getElementById('strategyResults');
+      container.innerHTML = '';
+      const sentimentCounts = { buy: 0, sell: 0, warn: 0, neutral: 0, total: results.length };
+
+      results.forEach(result => {
+        const visuals = getSignalVisuals(result.signal);
+        sentimentCounts[visuals.category]++;
+        const div = document.createElement('div');
+        div.classList.add('strategy', visuals.className);
+        div.innerHTML = `<div class="strategy-header"><strong><span class="signal-icon">${visuals.icon}</span>${result.name}</strong><span class="signal-text">(${result.signal})</span></div><div class="strategy-description">${result.description}</div>`;
+        container.appendChild(div);
+      });
+      updateSentimentBar(sentimentCounts);
+      showDebugData('Stage: Strategy evaluation completed');
+    }
+
+    function updateSentimentBar(counts) {
+      const { buy, sell, warn, neutral, total } = counts;
+      sentimentSummary.style.display = 'block';
+
+      const sentimentText = document.getElementById('sentiment-text');
+      sentimentText.innerHTML = `
+        <span><div class="dot buy"></div> <b>Buy:</b> ${buy}</span>
+        <span><div class="dot sell"></div> <b>Sell:</b> ${sell}</span>
+        <span><div class="dot warn"></div> <b>Warn:</b> ${warn}</span>
+        <span><div class="dot neutral"></div> <b>Neutral:</b> ${neutral}</span>
+      `;
+
+      document.getElementById('bar-buy').style.width = `${(buy / total) * 100}%`;
+      document.getElementById('bar-sell').style.width = `${(sell / total) * 100}%`;
+      document.getElementById('bar-warn').style.width = `${(warn / total) * 100}%`;
+      document.getElementById('bar-neutral').style.width = `${(neutral / total) * 100}%`;
+    }
+
+    async function runAnalysis() {
+      loadingElement.style.display = 'flex';
+      chartCanvas.style.display = 'none';
+      sentimentSummary.style.display = 'none';
+      document.getElementById('strategyResults').innerHTML = '';
+      lastUpdatedElement.textContent = '';
+
+      if (priceChart) priceChart.destroy();
+      
+      const selectedCoin = coinSelect.value;
+      const selectedDays = timeframeSelect.value;
+      const coinName = coinSelect.options[coinSelect.selectedIndex].text;
+      const timeName = timeframeSelect.options[timeframeSelect.selectedIndex].text;
+      
+      chartTitle.textContent = `${coinName} Price - ${timeName}`;
+
+      const priceData = await fetchCryptoData(selectedCoin, selectedDays);
+      
+      if (priceData.length === 0) {
+        loadingElement.innerHTML = 'Failed to load chart data. Please try again.';
+        return;
+      }
+      loadingElement.style.display = 'none';
+      chartCanvas.style.display = 'block';
+
+      const ctx = chartCanvas.getContext('2d');
+      priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: priceData.map(item => new Date(item.timestamp).toLocaleDateString()),
+          datasets: [{
+            label: `Price of ${coinName} (USD)`,
+            data: priceData.map(item => item.price),
+            borderColor: 'rgba(59, 130, 246, 1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true, tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          scales: {
+            x: { title: { display: true, text: 'Date', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+            y: { title: { display: true, text: 'Price (USD)', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+          },
+          plugins: { legend: { labels: { color: 'white' } } }
+        }
+      });
+      
+      lastUpdatedElement.textContent = `Last updated at ${new Date().toLocaleTimeString('en-GB')}`;
+      evaluateStrategies(priceData);
+    }
+
+    runButton.addEventListener('click', runAnalysis);
+    document.addEventListener('DOMContentLoaded', runAnalysis);
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleButton = document.getElementById('debugToggle');
+      const debugPanel = document.getElementById('debugInfo');
+      if(toggleButton && debugPanel) {
+        toggleButton.addEventListener('click', () => {
+          debugPanel.classList.toggle('hidden');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
