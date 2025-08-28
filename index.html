@@ -36,9 +36,7 @@
 
     /* Header */
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      text-align: center;
       padding: 15px 30px;
       font-size: 1.75rem;
       font-weight: 600;
@@ -47,18 +45,6 @@
       border-radius: 12px;
       border: 1px solid var(--border-color);
       margin-bottom: 30px;
-    }
-
-    #debugToggle {
-      background: none;
-      border: none;
-      font-size: 2rem;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-
-    #debugToggle:hover {
-      transform: scale(1.1);
     }
 
     /* Main Container */
@@ -79,6 +65,15 @@
       border: 1px solid var(--border-color);
     }
     
+    /* Chart Title */
+    .chart-title {
+      margin-top: 0;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: 600;
+      color: var(--text-muted-color);
+    }
+
     /* Loading Spinner */
     #loadingMessage {
       display: flex;
@@ -143,6 +138,29 @@
     }
 
     /* Debug Section */
+    .debug-toggle-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    #debugToggle {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted-color);
+      font-size: 1rem;
+      font-family: var(--font-family);
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    #debugToggle:hover {
+      background: var(--border-color);
+      color: var(--text-color);
+    }
+    
     .debug {
       font-size: 14px;
       font-family: monospace;
@@ -167,10 +185,12 @@
       }
       
       header {
-        flex-direction: column;
-        gap: 10px;
         font-size: 1.4rem;
         padding: 15px;
+      }
+      
+      .chart-title {
+        font-size: 1.2rem;
       }
 
       .card {
@@ -187,10 +207,10 @@
   <div class="container">
     <header>
       <span>Crypto Pattern Matcher - v3.1</span>
-      <button id="debugToggle" title="Toggle Debug Panel">🐞</button>
     </header>
 
     <div class="chart-container card">
+      <h2 class="chart-title">Bitcoin Price - 24 Hours</h2>
       <canvas id="priceChart"></canvas>
     </div>
     
@@ -200,6 +220,10 @@
     
     <div id="strategyResults" class="strategies"></div>
     
+    <div class="debug-toggle-container">
+        <button id="debugToggle" title="Toggle Debug Panel">🐞 Show/Hide Debug</button>
+    </div>
+    
     <div id="debugInfo" class="debug hidden"></div>
   </div>
 
@@ -207,7 +231,7 @@
     // --- CORE LOGIC - UNCHANGED ---
     import { strategies } from './strategies.js';
 
-    let version = 3.1; // Updated version number
+    let version = 3.1;
     document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
     let isDataFetched = false;
     let isChartUpdated = false;
@@ -246,9 +270,11 @@
 
     function showDebugData(message, data = null) {
       const debugInfoElement = document.getElementById('debugInfo');
-      debugInfoElement.innerHTML += `${message}<br>`;
-      if (data) {
-        debugInfoElement.innerHTML += `<pre>${data}</pre><br>`;
+      if (debugInfoElement) {
+        debugInfoElement.innerHTML += `${message}<br>`;
+        if (data) {
+          debugInfoElement.innerHTML += `<pre>${data}</pre><br>`;
+        }
       }
     }
 
@@ -327,6 +353,7 @@
           signal: result.signal
         };
       });
+      // Sorts Bullish signals to the top
       results.sort((a, b) => (a.signal === 'Bullish' && b.signal !== 'Bullish') ? -1 : (b.signal === 'Bullish' && a.signal !== 'Bullish') ? 1 : 0);
       const container = document.getElementById('strategyResults');
       container.innerHTML = '';
@@ -362,9 +389,11 @@
       const toggleButton = document.getElementById('debugToggle');
       const debugPanel = document.getElementById('debugInfo');
       
-      toggleButton.addEventListener('click', () => {
-        debugPanel.classList.toggle('hidden');
-      });
+      if(toggleButton && debugPanel) {
+        toggleButton.addEventListener('click', () => {
+          debugPanel.classList.toggle('hidden');
+        });
+      }
     });
   </script>
 </body>
