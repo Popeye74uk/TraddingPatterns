@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crypto Pattern Matcher - v3.1</title>
+  <title>CoinScan v3.1</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="strategies.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,8 +38,8 @@
     header {
       text-align: center;
       padding: 15px 30px;
-      font-size: 1.75rem;
-      font-weight: 600;
+      font-size: 2rem;
+      font-weight: 700;
       background: var(--surface-color);
       color: var(--text-color);
       border-radius: 12px;
@@ -185,8 +185,9 @@
       }
       
       header {
-        font-size: 1.4rem;
+        font-size: 1.75rem; /* Shrink font size on mobile */
         padding: 15px;
+        margin-bottom: 15px; /* Reduce gap between header and chart */
       }
       
       .chart-title {
@@ -206,7 +207,7 @@
 <body>
   <div class="container">
     <header>
-      <span>Crypto Pattern Matcher - v3.1</span>
+      <span>CoinScan</span>
     </header>
 
     <div class="chart-container card">
@@ -232,7 +233,7 @@
     import { strategies } from './strategies.js';
 
     let version = 3.1;
-    document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
+    document.title = `CoinScan v${version.toFixed(1)}`;
     let isDataFetched = false;
     let isChartUpdated = false;
 
