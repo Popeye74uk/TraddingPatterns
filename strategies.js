@@ -27,6 +27,38 @@ export const strategies = [
         return { match: false, signal: 'Error', description: 'RSI Overbought/Oversold' };
       }
     }
+  },
+  {
+    name: "MACD Cross",
+    description: "MACD line crossing signal line.",
+    evaluate: (data) => {
+      try {
+        const { macd, signal } = calculateMACD(data);
+        const lastMacd = macd[macd.length - 1];
+        const lastSignal = signal[signal.length - 1];
+        const signalLine = lastMacd > lastSignal ? 'Bullish Cross' : 'Bearish Cross';
+        return { match: signalLine === 'Bullish Cross', signal: signalLine, description: 'MACD Cross' };
+      } catch (error) {
+        console.error('Error in MACD evaluation:', error);
+        return { match: false, signal: 'Error', description: 'MACD Cross' };
+      }
+    }
+  },
+  {
+    name: "Bollinger Bands Breakout",
+    description: "Breakout above or below Bollinger Bands.",
+    evaluate: (data) => {
+      try {
+        const { upperBand, lowerBand } = calculateBollingerBands(data);
+        const lastPrice = data[data.length - 1].price || 0;
+        const signalUp = lastPrice > upperBand[upperBand.length - 1] ? 'Bullish Breakout' : 'No Signal';
+        const signalDown = lastPrice < lowerBand[lowerBand.length - 1] ? 'Bearish Breakout' : 'No Signal';
+        return { match: signalUp !== 'No Signal' || signalDown !== 'No Signal', signal: `${signalUp} | ${signalDown}`, description: 'Bollinger Bands Breakout' };
+      } catch (error) {
+        console.error('Error in Bollinger Bands evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Bollinger Bands Breakout' };
+      }
+    }
   }
 ];
 
@@ -63,4 +95,46 @@ function calculateRSI(data, period = 14) {
   }
   const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
   return 100 - (100 / (1 + rs));
+}
+
+function calculateEMA(data, period = 12) {
+  if (!data || data.length < period) return Array(data ? data.length : 0).fill(0);
+  const ema = [];
+  const multiplier = 2 / (period + 1);
+  let initialSMA = data.slice(0, period).reduce((acc, curr) => acc + (curr.price || 0), 0) / period;
+  ema.push(...Array(period - 1).fill(0), initialSMA);
+  for (let i = period; i < data.length; i++) {
+    const emaValue = ((data[i].price || 0) - ema[i - 1]) * multiplier + ema[i - 1];
+    ema.push(emaValue);
+  }
+  return ema;
+}
+
+function calculateMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+  if (!data || data.length < slowPeriod + signalPeriod) return { macd: Array(data ? data.length : 0).fill(0), signal: Array(data ? data.length : 0).fill(0) };
+  const fastEMA = calculateEMA(data, fastPeriod);
+  const slowEMA = calculateEMA(data, slowPeriod);
+  const macd = fastEMA.map((fast, i) => fast - slowEMA[i]);
+  const signal = calculateEMA(macd.map((value) => ({ price: value })), signalPeriod);
+  return { macd, signal };
+}
+
+function calculateBollingerBands(data, period = 20, multiplier = 2) {
+  if (!data || data.length < period) return { upperBand: Array(data ? data.length : 0).fill(0), lowerBand: Array(data ? data.length : 0).fill(0) };
+  const sma = calculateSMA(data, period);
+  const bands = { upperBand: [], lowerBand: [] };
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      bands.upperBand.push(0);
+      bands.lowerBand.push(0);
+    } else {
+      const prices = data.slice(i - period + 1, i + 1).map(d => d.price || 0);
+      const mean = prices.reduce((acc, p) => acc + p, 0) / period;
+      const variance = prices.reduce((acc, p) => acc + Math.pow(p - mean, 2), 0) / period;
+      const stdDev = Math.sqrt(variance);
+      bands.upperBand.push(sma[i] + multiplier * stdDev);
+      bands.lowerBand.push(sma[i] - multiplier * stdDev);
+    }
+  }
+  return bands;
 }
