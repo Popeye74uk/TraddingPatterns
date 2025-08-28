@@ -64,7 +64,6 @@
       justify-content: center;
       align-items: center;
       gap: 20px;
-      margin-bottom: 25px;
       flex-wrap: wrap;
     }
     .control-group { display: flex; align-items: center; gap: 8px; }
@@ -167,7 +166,8 @@
 <body>
   <div class="container">
     <header>CoinScan</header>
-    <div class="chart-container card">
+
+    <div class="card">
       <div class="controls-container">
         <div class="control-group">
           <label for="coin-select">Coin:</label>
@@ -190,11 +190,15 @@
         </div>
         <button id="run-analysis">Analyze</button>
       </div>
+    </div>
+
+    <div class="chart-container card">
       <h2 id="chartTitle" class="chart-title"></h2>
       <p id="lastUpdated" class="timestamp"></p>
       <div id="loadingMessage"><div class="spinner"></div></div>
       <canvas id="priceChart"></canvas>
     </div>
+
     <div id="sentiment-summary" class="card sentiment-card" style="display: none;">
       <div id="sentiment-text" class="sentiment-text"></div>
       <div class="sentiment-bar">
