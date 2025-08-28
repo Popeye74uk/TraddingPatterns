@@ -59,6 +59,36 @@ export const strategies = [
         return { match: false, signal: 'Error', description: 'Bollinger Bands Breakout' };
       }
     }
+  },
+  {
+    name: "Exponential Moving Average (EMA)",
+    description: "EMA gives more weight to recent prices.",
+    evaluate: (data) => {
+      try {
+        const ema = calculateEMA(data);
+        const currentPrice = data[data.length - 1].price || 0;
+        const signal = currentPrice > ema[ema.length - 1] ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Exponential Moving Average' };
+      } catch (error) {
+        console.error('Error in EMA evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Exponential Moving Average' };
+      }
+    }
+  },
+  {
+    name: "Golden Cross",
+    description: "Bullish crossover when the short-term moving average crosses above the long-term moving average.",
+    evaluate: (data) => {
+      try {
+        const shortTermMA = calculateSMA(data, 50);
+        const longTermMA = calculateSMA(data, 200);
+        const signal = shortTermMA[shortTermMA.length - 1] > longTermMA[longTermMA.length - 1] ? 'Bullish' : 'No Signal';
+        return { match: signal === 'Bullish', signal, description: 'Golden Cross' };
+      } catch (error) {
+        console.error('Error in Golden Cross evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Golden Cross' };
+      }
+    }
   }
 ];
 
