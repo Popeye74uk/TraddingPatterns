@@ -4,46 +4,216 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crypto Pattern Matcher - v3.1</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js from CDN -->
-  <script type="module" src="strategies.js" defer></script> <!-- External strategies file -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="strategies.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
-    header { text-align: center; padding: 20px 0; font-size: 2rem; background: #2196f3; color: white; border-radius: 8px; }
-    .container { display: flex; flex-direction: column; gap: 20px; justify-content: space-between; margin-top: 30px; max-width: 1200px; margin-left: auto; margin-right: auto; }
-    .chart-container { width: 100%; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); margin: auto; }
-    .loading { font-size: 18px; color: red; }
-    .debug { font-size: 14px; color: #555; margin-top: 10px; height: 400px; overflow-y: auto; background: #f1f1f1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; display: block; width: 100%; }
-    .strategies { margin-top: 20px; padding: 10px; background: #e0f7fa; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 100%; }
-    .strategy { padding: 10px; background: #ffffff; border-radius: 6px; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-    .strategy.match { background: #c8e6c9; } /* Green for matched */
-    .strategy.no-match { background: #ffebee; } /* Red for no match */
+    /* CSS Variables for Easy Theming */
+    :root {
+      --bg-color: #121826;
+      --surface-color: #1f2937;
+      --primary-color: #3b82f6;
+      --text-color: #f9fafb;
+      --text-muted-color: #9ca3af;
+      --border-color: #374151;
+      --success-bg: rgba(16, 185, 129, 0.1);
+      --success-border: #10b981;
+      --danger-bg: rgba(239, 68, 68, 0.1);
+      --danger-border: #ef4444;
+      --font-family: 'Poppins', sans-serif;
+    }
+
+    /* General Body Styles */
+    body {
+      font-family: var(--font-family);
+      background: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      font-size: 1.75rem;
+      font-weight: 600;
+      background: var(--surface-color);
+      color: var(--text-color);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 30px;
+    }
+
+    #debugToggle {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    #debugToggle:hover {
+      transform: scale(1.1);
+    }
+
+    /* Main Container */
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Card Styling for all sections */
+    .card {
+      background: var(--surface-color);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+    }
+    
+    /* Loading Spinner */
+    #loadingMessage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      font-size: 1.2rem;
+      color: var(--text-muted-color);
+    }
+
+    .spinner {
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      border-top: 5px solid var(--primary-color);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Strategies Section */
+    .strategies {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .strategy {
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .strategy:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .strategy.match {
+      background: var(--success-bg);
+      border-color: var(--success-border);
+    }
+
+    .strategy.no-match {
+      background: var(--danger-bg);
+      border-color: var(--danger-border);
+    }
+
+    .strategy strong {
+      color: var(--text-color);
+      font-weight: 600;
+    }
+
+    .strategy span {
+      font-size: 0.9em;
+      color: var(--text-muted-color);
+    }
+
+    /* Debug Section */
+    .debug {
+      font-size: 14px;
+      font-family: monospace;
+      color: var(--text-muted-color);
+      height: 400px;
+      overflow-y: auto;
+      background: #0d1117;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      transition: opacity 0.3s ease, transform 0.3s ease, height 0.3s ease;
+    }
+
+    .debug.hidden {
+      display: none;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      header {
+        flex-direction: column;
+        gap: 10px;
+        font-size: 1.4rem;
+        padding: 15px;
+      }
+
+      .card {
+        padding: 15px;
+      }
+
+      .strategies {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>Crypto Pattern Matcher - v3.0</header>
-
   <div class="container">
-    <div class="chart-container">
-      <canvas id="priceChart" width="800" height="400"></canvas> <!-- Chart container -->
+    <header>
+      <span>Crypto Pattern Matcher - v3.1</span>
+      <button id="debugToggle" title="Toggle Debug Panel">🐞</button>
+    </header>
+
+    <div class="chart-container card">
+      <canvas id="priceChart"></canvas>
     </div>
-    <div class="loading" id="loadingMessage">Loading Data...</div>
-    <!-- New strategy results output -->
+    
+    <div id="loadingMessage" class="card">
+        <div class="spinner"></div>
+    </div>
+    
     <div id="strategyResults" class="strategies"></div>
-    <div id="debugInfo" class="debug"></div> <!-- Debugging output -->
+    
+    <div id="debugInfo" class="debug hidden"></div>
   </div>
 
   <script type="module">
-    import { strategies } from './strategies.js'; // Import strategies from strategies.js
-    
-    let version = 3.0; // Incremented version number to v3.0
-    document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
-    let isDataFetched = false; // Flag to prevent redundant data fetches
-    let isChartUpdated = false; // Flag to prevent redundant chart updates
+    // --- CORE LOGIC - UNCHANGED ---
+    import { strategies } from './strategies.js';
 
-    // Function to fetch data for 1 day with retry logic
+    let version = 3.1; // Updated version number
+    document.title = `Crypto Pattern Matcher - v${version.toFixed(1)}`;
+    let isDataFetched = false;
+    let isChartUpdated = false;
+
     async function fetchCryptoData(symbol = 'bitcoin') {
       showDebugData('Stage: Starting data fetch for last 1 day...');
-      
       const fetchWithTimeout = async (url, timeout) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -55,23 +225,16 @@
           throw new Error(error.message);
         }
       };
-
       try {
-        // Try fetching data, with a 10-second timeout
         const res = await fetchWithTimeout(`https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=1`, 10000);
-        
-        // Log the full response to inspect the data (without printing price data)
         const data = await res.json();
         showDebugData('API Response received');
-        showDebugData(`Data: Prices count = ${data.prices ? data.prices.length : 0}`); // Show only count, not price data
-
-        // Check if data.prices exists and has valid data
+        showDebugData(`Data: Prices count = ${data.prices ? data.prices.length : 0}`);
         if (!data.prices || !Array.isArray(data.prices)) {
           showDebugData('Stage: Error - Invalid data format');
           showDebugData('Error: data.prices is undefined or not an array');
           return [];
         }
-
         showDebugData('Stage: Data fetched successfully');
         return data.prices.map(([timestamp, price]) => ({ timestamp, price }));
       } catch (error) {
@@ -81,96 +244,82 @@
       }
     }
 
-    // Function to display debug messages
     function showDebugData(message, data = null) {
       const debugInfoElement = document.getElementById('debugInfo');
-      debugInfoElement.innerHTML += `${message}<br>`; // Always show message
+      debugInfoElement.innerHTML += `${message}<br>`;
       if (data) {
-        debugInfoElement.innerHTML += `<pre>${data}</pre><br>`; // Show additional data if needed
+        debugInfoElement.innerHTML += `<pre>${data}</pre><br>`;
       }
-      debugInfoElement.style.display = 'block'; // Show debug box
     }
 
-    // Function to update the chart with dynamic data
     async function updateChartWithFetchedData() {
       if (isChartUpdated) {
         showDebugData('Stage: Chart already updated');
-        return; // Prevent updating the chart multiple times
-      }
-      
-      const priceData = await fetchCryptoData('bitcoin');
-      
-      if (priceData.length === 0) {
-        showDebugData('Stage: No data to display on the chart');
         return;
       }
-
+      const priceData = await fetchCryptoData('bitcoin');
+      if (priceData.length === 0) {
+        showDebugData('Stage: No data to display on the chart');
+        document.getElementById('loadingMessage').innerHTML = 'Failed to load chart data.';
+        return;
+      }
       showDebugData('Stage: Updating chart with new data');
       const ctxPrice = document.getElementById('priceChart').getContext('2d');
-
       if (!ctxPrice) {
         showDebugData('Stage: Error getting canvas context');
         return;
       }
-
-      showDebugData(`Canvas size: Width = ${document.getElementById('priceChart').width}, Height = ${document.getElementById('priceChart').height}`);
-      
       new Chart(ctxPrice, {
         type: 'line',
         data: {
-          labels: priceData.map(item => new Date(item.timestamp).toLocaleTimeString()), // Use time format for the x-axis
+          labels: priceData.map(item => new Date(item.timestamp).toLocaleTimeString()),
           datasets: [{
             label: 'Price (USD)',
             data: priceData.map(item => item.price),
-            borderColor: 'rgba(75, 192, 192, 1)',
-            fill: false
+            borderColor: 'rgba(59, 130, 246, 1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.1
           }]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: true,
           scales: {
             x: {
-              title: {
-                display: true,
-                text: 'Time'
-              }
+              title: { display: true, text: 'Time', color: 'white' },
+              ticks: { color: 'white' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
             },
             y: {
-              title: {
-                display: true,
-                text: 'Price (USD)'
-              }
+              title: { display: true, text: 'Price (USD)', color: 'white' },
+              ticks: { color: 'white' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
             }
+          },
+          plugins: {
+              legend: {
+                  labels: {
+                      color: 'white'
+                  }
+              }
           }
         }
       });
-
-      // Hide loading message once chart is loaded
       document.getElementById('loadingMessage').style.display = 'none';
-      isChartUpdated = true; // Mark the chart as updated
-
+      isChartUpdated = true;
       showDebugData('Stage: Chart updated successfully');
-
-      // Evaluate the trading strategies against the fetched data
       evaluateStrategies(priceData);
     }
 
-    // Function to evaluate trading strategies
     function evaluateStrategies(priceData) {
       showDebugData('Stage: Evaluating strategies...');
-      
-      // Log the strategies object
-      console.log('Strategies Object:', strategies);
-
       if (!strategies || !Array.isArray(strategies)) {
         showDebugData('Error: Strategies file not loaded properly.');
         return;
       }
-
-      // Evaluate all strategies
       const results = strategies.map(strategy => {
         const result = strategy.evaluate(priceData);
-        console.log(`Evaluating Strategy: ${strategy.name} - Signal: ${result.signal}`);  // Log each strategy result
         return {
           name: strategy.name,
           description: strategy.description,
@@ -178,51 +327,45 @@
           signal: result.signal
         };
       });
-
-      // Sort strategies so that green ones (Bullish/Matched) come first
-      results.sort((a, b) => {
-        if (a.signal === 'Bullish' && b.signal !== 'Bullish') return -1; // Bullish goes to the top
-        if (b.signal === 'Bullish' && a.signal !== 'Bullish') return 1; // Bullish goes to the top
-        return 0; // Keep the order if neither is Bullish
-      });
-
-      // Check if the results array is populated
-      console.log('Sorted Results:', results);
-
+      results.sort((a, b) => (a.signal === 'Bullish' && b.signal !== 'Bullish') ? -1 : (b.signal === 'Bullish' && a.signal !== 'Bullish') ? 1 : 0);
       const container = document.getElementById('strategyResults');
-      container.innerHTML = ''; // Clear previous results
-
+      container.innerHTML = '';
       if (results.length === 0) {
         showDebugData('Stage: No strategies evaluated or matched.');
-        return; // If no strategies matched, exit early
+        return;
       }
-
-      // Loop through sorted strategies and display the results
       results.forEach(result => {
         const div = document.createElement('div');
         div.classList.add('strategy');
         div.classList.add(result.match ? 'match' : 'no-match');
-        div.innerHTML = `<strong>${result.name}</strong> (${result.signal}) - ${result.description}`;
+        div.innerHTML = `<strong>${result.name}</strong> (${result.signal})<br><span>${result.description}</span>`;
         container.appendChild(div);
       });
-
       showDebugData('Stage: Strategy evaluation completed');
     }
 
-    // Function to prevent redundant evaluations (e.g., multiple fetches and chart updates)
     async function evaluate() {
       if (isDataFetched) {
         showDebugData('Stage: Data already fetched');
-        return; // Prevent redundant data fetching
+        return;
       }
-      
       showDebugData('Stage: Start evaluating...');
-      await updateChartWithFetchedData(); // For last 1 day
-      isDataFetched = true; // Mark that data has been fetched
+      await updateChartWithFetchedData();
+      isDataFetched = true;
     }
 
-    // Initial call to evaluate and load the chart
     evaluate();
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleButton = document.getElementById('debugToggle');
+      const debugPanel = document.getElementById('debugInfo');
+      
+      toggleButton.addEventListener('click', () => {
+        debugPanel.classList.toggle('hidden');
+      });
+    });
   </script>
 </body>
 </html>
