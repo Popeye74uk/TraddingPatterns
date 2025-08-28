@@ -10,7 +10,7 @@ export const strategies = [
         return { match: true, signal, description: 'Simple Moving Average' };
       } catch (error) {
         console.error('Error in SMA evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'Simple Moving Average' };
+        return { match: false, signal: 'Error', description: 'Simple Moving Average' };
       }
     }
   },
@@ -24,7 +24,7 @@ export const strategies = [
         return { match: signal !== 'No Signal', signal, description: 'RSI Overbought/Oversold' };
       } catch (error) {
         console.error('Error in RSI evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'RSI Overbought/Oversold' };
+        return { match: false, signal: 'Error', description: 'RSI Overbought/Oversold' };
       }
     }
   },
@@ -40,7 +40,7 @@ export const strategies = [
         return { match: signalLine === 'Bullish Cross', signal: signalLine, description: 'MACD Cross' };
       } catch (error) {
         console.error('Error in MACD evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'MACD Cross' };
+        return { match: false, signal: 'Error', description: 'MACD Cross' };
       }
     }
   },
@@ -56,7 +56,7 @@ export const strategies = [
         return { match: signalUp !== 'No Signal' || signalDown !== 'No Signal', signal: `${signalUp} | ${signalDown}`, description: 'Bollinger Bands Breakout' };
       } catch (error) {
         console.error('Error in Bollinger Bands evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'Bollinger Bands Breakout' };
+        return { match: false, signal: 'Error', description: 'Bollinger Bands Breakout' };
       }
     }
   },
@@ -71,7 +71,7 @@ export const strategies = [
         return { match: true, signal, description: 'Exponential Moving Average' };
       } catch (error) {
         console.error('Error in EMA evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'Exponential Moving Average' };
+        return { match: false, signal: 'Error', description: 'Exponential Moving Average' };
       }
     }
   },
@@ -86,7 +86,7 @@ export const strategies = [
         return { match: signal === 'Bullish', signal, description: 'Golden Cross' };
       } catch (error) {
         console.error('Error in Golden Cross evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'Golden Cross' };
+        return { match: false, signal: 'Error', description: 'Golden Cross' };
       }
     }
   },
@@ -101,7 +101,7 @@ export const strategies = [
         return { match: signal === 'Bearish', signal, description: 'Death Cross' };
       } catch (error) {
         console.error('Error in Death Cross evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'Death Cross' };
+        return { match: false, signal: 'Error', description: 'Death Cross' };
       }
     }
   },
@@ -115,7 +115,7 @@ export const strategies = [
         return { match: signal !== 'Neutral', signal, description: 'Stochastic Oscillator' };
       } catch (error) {
         console.error('Error in Stochastic Oscillator evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'Stochastic Oscillator' };
+        return { match: false, signal: 'Error', description: 'Stochastic Oscillator' };
       }
     }
   },
@@ -130,7 +130,7 @@ export const strategies = [
         return { match: true, signal, description: 'Parabolic SAR' };
       } catch (error) {
         console.error('Error in Parabolic SAR evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'Parabolic SAR' };
+        return { match: false, signal: 'Error', description: 'Parabolic SAR' };
       }
     }
   },
@@ -144,7 +144,78 @@ export const strategies = [
         return { match: true, signal, description: 'Ichimoku Cloud' };
       } catch (error) {
         console.error('Error in Ichimoku Cloud evaluation:', error);
-        return { match: deathcross, signal: 'Error', description: 'Ichimoku Cloud' };
+        return { match: false, signal: 'Error', description: 'Ichimoku Cloud' };
+      }
+    }
+  },
+  {
+    name: "Average Directional Index (ADX)",
+    description: "Measures trend strength.",
+    evaluate: (data) => {
+      try {
+        const adx = calculateADX(data);
+        const signal = adx > 25 ? 'Strong Trend' : 'Weak Trend';
+        return { match: signal === 'Strong Trend', signal, description: 'Average Directional Index' };
+      } catch (error) {
+        console.error('Error in ADX evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Average Directional Index' };
+      }
+    }
+  },
+  {
+    name: "MACD Histogram",
+    description: "Tracks the difference between MACD and signal line.",
+    evaluate: (data) => {
+      try {
+        const { macd, signal } = calculateMACD(data);
+        const histogram = macd[macd.length - 1] - signal[signal.length - 1];
+        const signalLine = histogram > 0 ? 'Bullish' : 'Bearish';
+        return { match: signalLine === 'Bullish', signal: signalLine, description: 'MACD Histogram' };
+      } catch (error) {
+        console.error('Error in MACD Histogram evaluation:', error);
+        return { match: false, signal: 'Error', description: 'MACD Histogram' };
+      }
+    }
+  },
+  {
+    name: "Relative Vigor Index (RVI)",
+    description: "Compares closing price to the range.",
+    evaluate: (data) => {
+      try {
+        const rvi = calculateRVI(data);
+        const signal = rvi.rvi > rvi.signal ? 'Bullish' : 'Bearish';
+        return { match: rvi.rvi > rvi.signal, signal, description: 'Relative Vigor Index' };
+      } catch (error) {
+        console.error('Error in RVI evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Relative Vigor Index' };
+      }
+    }
+  },
+  {
+    name: "Commodity Channel Index (CCI)",
+    description: "Identifies cyclical trends.",
+    evaluate: (data) => {
+      try {
+        const cci = calculateCCI(data);
+        const signal = cci > 100 ? 'Overbought' : (cci < -100 ? 'Oversold' : 'Neutral');
+        return { match: signal !== 'Neutral', signal, description: 'Commodity Channel Index' };
+      } catch (error) {
+        console.error('Error in CCI evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Commodity Channel Index' };
+      }
+    }
+  },
+  {
+    name: "Williams %R",
+    description: "Measures overbought and oversold levels.",
+    evaluate: (data) => {
+      try {
+        const williamsR = calculateWilliamsR(data);
+        const signal = williamsR < -20 ? 'Overbought' : (williamsR > -80 ? 'Oversold' : 'Neutral');
+        return { match: signal !== 'Neutral', signal, description: 'Williams %R' };
+      } catch (error) {
+        console.error('Error in Williams %R evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Williams %R' };
       }
     }
   }
@@ -273,7 +344,7 @@ function calculateParabolicSAR(data, step = 0.02, maxStep = 0.2) {
 }
 
 function calculateIchimoku(data, tenkanPeriod = 9, kijunPeriod = 26, senkouBPeriod = 52) {
-  if (!data || data.length < senkouBPeriod) return { cloudBullish: deathcross };
+  if (!data || data.length < senkouBPeriod) return { cloudBullish: false };
   const tenkanSen = calculateSMA(data, tenkanPeriod);
   const kijunSen = calculateSMA(data, kijunPeriod);
   const senkouSpanA = tenkanSen.map((t, i) => (t + kijunSen[i]) / 2);
@@ -281,4 +352,87 @@ function calculateIchimoku(data, tenkanPeriod = 9, kijunPeriod = 26, senkouBPeri
   const lastPrice = data[data.length - 1].price || 0;
   const cloudBullish = lastPrice > senkouSpanA[senkouSpanA.length - 1] && lastPrice > senkouSpanB[senkouSpanB.length - 1];
   return { cloudBullish };
+}
+
+function calculateADX(data, period = 14) {
+  if (!data || data.length < period + 1) return 0;
+  let plusDM = 0, minusDM = 0, trSum = 0;
+  for (let i = 1; i <= period; i++) {
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const prevHigh = data[i - 1].high || data[i - 1].price || 0;
+    const prevLow = data[i - 1].low || data[i - 1].price || 0;
+    const plus = high - prevHigh;
+    const minus = prevLow - low;
+    plusDM += plus > minus && plus > 0 ? plus : 0;
+    minusDM += minus > plus && minus > 0 ? minus : 0;
+    trSum += Math.max(high - low, Math.abs(high - (data[i - 1].price || 0)), Math.abs(low - (data[i - 1].price || 0)));
+  }
+  let plusDI = (plusDM / trSum) * 100;
+  let minusDI = (minusDM / trSum) * 100;
+  let dx = Math.abs(plusDI - minusDI) / (plusDI + minusDI) * 100;
+  let adx = dx;
+  for (let i = period + 1; i < data.length; i++) {
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const prevHigh = data[i - 1].high || data[i - 1].price || 0;
+    const prevLow = data[i - 1].low || data[i - 1].price || 0;
+    const plus = high - prevHigh;
+    const minus = prevLow - low;
+    plusDM = ((plusDM * (period - 1)) + (plus > minus && plus > 0 ? plus : 0)) / period;
+    minusDM = ((minusDM * (period - 1)) + (minus > plus && minus > 0 ? minus : 0)) / period;
+    const tr = Math.max(high - low, Math.abs(high - (data[i - 1].price || 0)), Math.abs(low - (data[i - 1].price || 0)));
+    trSum = ((trSum * (period - 1)) + tr) / period;
+    plusDI = (plusDM / trSum) * 100;
+    minusDI = (minusDM / trSum) * 100;
+    dx = Math.abs(plusDI - minusDI) / (plusDI + minusDI) * 100;
+    adx = ((adx * (period - 1)) + dx) / period;
+  }
+  return adx;
+}
+
+function calculateRVI(data, period = 10) {
+  if (!data || data.length < period + 1) return { rvi: 0, signal: 0 };
+  let rviSum = 0, rangeSum = 0;
+  for (let i = 1; i <= period; i++) {
+    const close = data[i].price || 0;
+    const open = data[i].open || data[i].price || 0;
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    rviSum += (close - open);
+    rangeSum += (high - low);
+  }
+  let rvi = rangeSum === 0 ? 0 : (rviSum / rangeSum);
+  let signal = rvi;
+  for (let i = period + 1; i < data.length; i++) {
+    const close = data[i].price || 0;
+    const open = data[i].open || data[i].price || 0;
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    rviSum = ((rviSum * (period - 1)) + (close - open)) / period;
+    rangeSum = ((rangeSum * (period - 1)) + (high - low)) / period;
+    rvi = rangeSum === 0 ? 0 : (rviSum / rangeSum);
+    signal = ((signal * (period - 1)) + rvi) / period;
+  }
+  return { rvi, signal };
+}
+
+function calculateCCI(data, period = 20) {
+  if (!data || data.length < period) return 0;
+  const typicalPrices = data.slice(-period).map(d => ((d.high || d.price || 0) + (d.low || d.price || 0) + (d.price || 0)) / 3);
+  const sma = typicalPrices.reduce((acc, val) => acc + val, 0) / period;
+  const meanDeviation = typicalPrices.reduce((acc, val) => acc + Math.abs(val - sma), 0) / period;
+  const currentTypicalPrice = ((data[data.length - 1].high || data[data.length - 1].price || 0) + 
+                             (data[data.length - 1].low || data[data.length - 1].price || 0) + 
+                             (data[data.length - 1].price || 0)) / 3;
+  return meanDeviation === 0 ? 0 : (currentTypicalPrice - sma) / (0.015 * meanDeviation);
+}
+
+function calculateWilliamsR(data, period = 14) {
+  if (!data || data.length < period) return 0;
+  const lastData = data.slice(-period);
+  const highestHigh = Math.max(...lastData.map(d => d.high || d.price || 0));
+  const lowestLow = Math.min(...lastData.map(d => d.low || d.price || 0));
+  const currentClose = data[data.length - 1].price || 0;
+  return highestHigh === lowestLow ? 0 : ((highestHigh - currentClose) / (highestHigh - lowestLow)) * -100;
 }
