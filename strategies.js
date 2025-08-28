@@ -505,6 +505,105 @@ export const strategies = [
         return { match: false, signal: 'Error', description: 'Hull Moving Average' };
       }
     }
+  },
+  {
+    name: "Elder’s Impulse System",
+    description: "Combines trend and momentum for entry/exit signals.",
+    evaluate: (data) => {
+      try {
+        const impulse = calculateElderImpulse(data);
+        const signal = impulse === 'green' ? 'Bullish' : (impulse === 'red' ? 'Bearish' : 'Neutral');
+        return { match: signal !== 'Neutral', signal, description: 'Elder’s Impulse System' };
+      } catch (error) {
+        console.error('Error in Elder’s Impulse System evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Elder’s Impulse System' };
+      }
+    }
+  },
+  {
+    name: "Know Sure Thing (KST)",
+    description: "Blends multiple ROC timeframes for trend strength.",
+    evaluate: (data) => {
+      try {
+        const kst = calculateKST(data);
+        const signal = kst.kst > kst.signal ? 'Bullish' : 'Bearish';
+        return { match: kst.kst > kst.signal, signal, description: 'Know Sure Thing' };
+      } catch (error) {
+        console.error('Error in KST evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Know Sure Thing' };
+      }
+    }
+  },
+  {
+    name: "Price Volume Trend (PVT)",
+    description: "Measures volume-driven price trends.",
+    evaluate: (data) => {
+      try {
+        const pvt = calculatePVT(data);
+        const signal = pvt[pvt.length - 1] > pvt[pvt.length - 2] ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Price Volume Trend' };
+      } catch (error) {
+        console.error('Error in PVT evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Price Volume Trend' };
+      }
+    }
+  },
+  {
+    name: "Mass Index",
+    description: "Detects potential reversals based on range expansion.",
+    evaluate: (data) => {
+      try {
+        const massIndex = calculateMassIndex(data);
+        const signal = massIndex > 27 ? 'Potential Reversal' : 'No Reversal';
+        return { match: signal === 'Potential Reversal', signal, description: 'Mass Index' };
+      } catch (error) {
+        console.error('Error in Mass Index evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Mass Index' };
+      }
+    }
+  },
+  {
+    name: "Percentage Price Oscillator (PPO)",
+    description: "Normalizes MACD as a percentage.",
+    evaluate: (data) => {
+      try {
+        const ppo = calculatePPO(data);
+        const signal = ppo.ppo > ppo.signal ? 'Bullish' : 'Bearish';
+        return { match: ppo.ppo > ppo.signal, signal, description: 'Percentage Price Oscillator' };
+      } catch (error) {
+        console.error('Error in PPO evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Percentage Price Oscillator' };
+      }
+    }
+  },
+  {
+    name: "Balance of Power (BOP)",
+    description: "Gauges buyer vs. seller strength.",
+    evaluate: (data) => {
+      try {
+        const bop = calculateBOP(data);
+        const signal = bop > 0 ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Balance of Power' };
+      } catch (error) {
+        console.error('Error in BOP evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Balance of Power' };
+      }
+    }
+  },
+  {
+    name: "Triple Exponential Moving Average (TEMA)",
+    description: "Reduces lag with multiple EMAs.",
+    evaluate: (data) => {
+      try {
+        const tema = calculateTEMA(data);
+        const currentPrice = data[data.length - 1].price || 0;
+        const signal = currentPrice > tema[tema.length - 1] ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Triple Exponential Moving Average' };
+      } catch (error) {
+        console.error('Error in TEMA evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Triple Exponential Moving Average' };
+      }
+    }
   }
 ];
 
@@ -1034,6 +1133,78 @@ function calculateWMA(data, period) {
     }
   }
   return wma;
+}
+
+function calculateElderImpulse(data, period = 13) {
+  if (!data || data.length < period + 1) return 'neutral';
+  const ema = calculateEMA(data, period);
+  const { macd, signal } = calculateMACD(data);
+  const histogram = macd[macd.length - 1] - signal[signal.length - 1];
+  const emaRising = ema[ema.length - 1] > ema[ema.length - 2];
+  const histPositive = histogram > 0;
+  return emaRising && histPositive ? 'green' : (!emaRising && !histPositive ? 'red' : 'neutral');
+}
+
+function calculateKST(data, r1 = 10, r2 = 15, r3 = 20, r4 = 30, sma1 = 10, sma2 = 10, sma3 = 10, sma4 = 15) {
+  if (!data || data.length < r4 + sma4) return { kst: 0, signal: 0 };
+  const roc1 = calculateROC(data, r1);
+  const roc2 = calculateROC(data, r2);
+  const roc3 = calculateROC(data, r3);
+  const roc4 = calculateROC(data, r4);
+  const kst = (roc1 * 1 + roc2 * 2 + roc3 * 3 + roc4 * 4) / 10;
+  const signal = calculateSMA(data.slice(-sma4).map(() => ({ price: kst })), sma4)[sma4 - 1];
+  return { kst, signal };
+}
+
+function calculatePVT(data) {
+  if (!data || data.length < 2) return Array(data ? data.length : 0).fill(0);
+  const pvt = [0];
+  for (let i = 1; i < data.length; i++) {
+    const priceChange = ((data[i].price || 0) - (data[i - 1].price || 0)) / (data[i - 1].price || 1);
+    const volume = data[i].volume || 0;
+    pvt.push(pvt[i - 1] + priceChange * volume);
+  }
+  return pvt;
+}
+
+function calculateMassIndex(data, period = 25, emaPeriod = 9) {
+  if (!data || data.length < period + emaPeriod) return 0;
+  let sum = 0;
+  for (let i = data.length - period; i < data.length; i++) {
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const range = high - low;
+    const ema1 = calculateEMA(data.slice(0, i + 1).map(d => ({ price: (d.high || d.price || 0) - (d.low || d.price || 0) })), emaPeriod);
+    const ema2 = calculateEMA(ema1.map(v => ({ price: v })), emaPeriod);
+    sum += ema1[ema1.length - 1] / (ema2[ema2.length - 1] || 1);
+  }
+  return sum;
+}
+
+function calculatePPO(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+  if (!data || data.length < slowPeriod + signalPeriod) return { ppo: 0, signal: 0 };
+  const fastEMA = calculateEMA(data, fastPeriod);
+  const slowEMA = calculateEMA(data, slowPeriod);
+  const ppo = fastEMA.map((fast, i) => ((fast - slowEMA[i]) / (slowEMA[i] || 1)) * 100);
+  const signal = calculateEMA(ppo.map((value) => ({ price: value })), signalPeriod);
+  return { ppo: ppo[ppo.length - 1], signal: signal[signal.length - 1] };
+}
+
+function calculateBOP(data) {
+  if (!data || data.length < 1) return 0;
+  const high = data[data.length - 1].high || data[data.length - 1].price || 0;
+  const low = data[data.length - 1].low || data[data.length - 1].price || 0;
+  const open = data[data.length - 1].open || data[data.length - 1].price || 0;
+  const close = data[data.length - 1].price || 0;
+  return (high - low) === 0 ? 0 : (close - open) / (high - low);
+}
+
+function calculateTEMA(data, period = 12) {
+  if (!data || data.length < period * 3) return Array(data ? data.length : 0).fill(0);
+  const ema1 = calculateEMA(data, period);
+  const ema2 = calculateEMA(ema1.map(v => ({ price: v })), period);
+  const ema3 = calculateEMA(ema2.map(v => ({ price: v })), period);
+  return ema1.map((e1, i) => 3 * e1 - 3 * ema2[i] + ema3[i]);
 }
 
 // End of code
