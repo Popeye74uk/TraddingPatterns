@@ -43,7 +43,6 @@
       color: var(--text-color);
       border-radius: 12px;
       border: 1px solid var(--border-color);
-      /* MODIFICATION: Removed margin-bottom to rely on the container's gap for spacing */
     }
     .container {
       display: flex;
@@ -100,7 +99,7 @@
       color: var(--text-muted-color);
     }
     #loadingMessage {
-      display: none; /* Hidden by default, shown via JS */
+      display: none;
       justify-content: center;
       align-items: center;
       min-height: 200px;
@@ -138,6 +137,18 @@
     .strategy-header .signal-text { font-size: 0.85em; font-weight: 400; color: var(--text-muted-color); white-space: nowrap; margin-left: 8px; }
     .signal-icon { font-size: 1.2em; }
     .strategy-description { font-size: 0.9em; color: var(--text-muted-color); }
+    /* MODIFICATION: New styles for the 'show on chart' button */
+    .show-on-chart {
+      font-size: 1.2rem;
+      cursor: pointer;
+      margin-left: auto;
+      padding: 0 5px;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+    .show-on-chart:hover { opacity: 1; }
+    .show-on-chart.active { opacity: 1; color: var(--primary-color); }
+
     .strategy.signal-buy { background: var(--success-bg); border-color: var(--success-border); }
     .strategy.signal-sell { background: var(--danger-bg); border-color: var(--danger-border); }
     .strategy.signal-warn { background: var(--warning-bg); border-color: var(--warning-border); }
@@ -160,7 +171,6 @@
       .chart-title { font-size: 1.2rem; }
       .card { padding: 15px; }
       .strategies { grid-template-columns: 1fr; }
-      /* MODIFICATION: Added styles for mobile controls layout */
       .controls-container {
         flex-direction: column;
         align-items: stretch;
@@ -177,7 +187,6 @@
 <body>
   <div class="container">
     <header>CoinScan</header>
-
     <div class="card">
       <div class="controls-container">
         <div class="control-group">
@@ -207,14 +216,12 @@
         <button id="run-analysis">Analyze</button>
       </div>
     </div>
-
     <div class="chart-container card">
       <h2 id="chartTitle" class="chart-title"></h2>
       <p id="lastUpdated" class="timestamp"></p>
       <div id="loadingMessage"><div class="spinner"></div></div>
       <canvas id="priceChart"></canvas>
     </div>
-
     <div id="sentiment-summary" class="card sentiment-card" style="display: none;">
       <div id="sentiment-text" class="sentiment-text"></div>
       <div class="sentiment-bar">
@@ -236,6 +243,9 @@
     let version = 3.3;
     document.title = `CoinScan v${version.toFixed(1)}`;
     let priceChart = null;
+    // MODIFICATION: New variables to store analysis results and track indicators
+    let strategyAnalysisResults = [];
+    const strategyResultsContainer = document.getElementById('strategyResults');
 
     const coinSelect = document.getElementById('coin-select');
     const timeframeSelect = document.getElementById('timeframe-select');
@@ -281,19 +291,35 @@
 
     function evaluateStrategies(priceData) {
       showDebugData('Stage: Evaluating strategies...');
-      const results = strategies.map(strategy => ({ name: strategy.name, description: strategy.description, ...strategy.evaluate(priceData) }));
-      results.sort((a, b) => (a.signal.includes('Bullish') && !b.signal.includes('Bullish')) ? -1 : 1);
+      // MODIFICATION: Store full results in the new global variable
+      strategyAnalysisResults = strategies.map(strategy => {
+        return { name: strategy.name, description: strategy.description, ...strategy.evaluate(priceData) };
+      });
+      
+      strategyAnalysisResults.sort((a, b) => (a.signal.includes('Bullish') && !b.signal.includes('Bullish')) ? -1 : 1);
       
       const container = document.getElementById('strategyResults');
       container.innerHTML = '';
-      const sentimentCounts = { buy: 0, sell: 0, warn: 0, neutral: 0, total: results.length };
+      const sentimentCounts = { buy: 0, sell: 0, warn: 0, neutral: 0, total: strategyAnalysisResults.length };
 
-      results.forEach(result => {
+      strategyAnalysisResults.forEach(result => {
         const visuals = getSignalVisuals(result.signal);
         sentimentCounts[visuals.category]++;
         const div = document.createElement('div');
         div.classList.add('strategy', visuals.className);
-        div.innerHTML = `<div class="strategy-header"><strong><span class="signal-icon">${visuals.icon}</span>${result.name}</strong><span class="signal-text">(${result.signal})</span></div><div class="strategy-description">${result.description}</div>`;
+        
+        // MODIFICATION: Add the chart toggle icon if dataPoints exist
+        const canBePlotted = result.dataPoints ? `<span class="show-on-chart" title="Show on chart">📈</span>` : '';
+        
+        div.innerHTML = `
+          <div class="strategy-header">
+            <strong><span class="signal-icon">${visuals.icon}</span>${result.name}</strong>
+            ${canBePlotted}
+          </div>
+          <div class="strategy-description">${result.description} (${result.signal})</div>`;
+        
+        // Add data attribute to easily find the strategy later
+        div.dataset.strategyName = result.name;
         container.appendChild(div);
       });
       updateSentimentBar(sentimentCounts);
@@ -317,13 +343,50 @@
       document.getElementById('bar-warn').style.width = `${(warn / total) * 100}%`;
       document.getElementById('bar-neutral').style.width = `${(neutral / total) * 100}%`;
     }
+    
+    // MODIFICATION: New function to toggle indicators on the chart
+    function toggleIndicatorOnChart(strategyName, targetElement) {
+      if (!priceChart) return;
+      
+      const result = strategyAnalysisResults.find(r => r.name === strategyName);
+      if (!result || !result.dataPoints) return;
+      
+      // Special case for Bollinger Bands, which has two lines
+      if (strategyName === "Bollinger Bands Breakout") {
+        const upperLabel = "Bollinger Upper";
+        const lowerLabel = "Bollinger Lower";
+        const upperExists = priceChart.data.datasets.some(ds => ds.label === upperLabel);
+        
+        if (upperExists) { // Remove both bands
+          priceChart.data.datasets = priceChart.data.datasets.filter(ds => ds.label !== upperLabel && ds.label !== lowerLabel);
+          targetElement.classList.remove('active');
+        } else { // Add both bands
+          priceChart.data.datasets.push({ label: upperLabel, data: result.dataPoints.upper, borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, fill: false });
+          priceChart.data.datasets.push({ label: lowerLabel, data: result.dataPoints.lower, borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, fill: false });
+          targetElement.classList.add('active');
+        }
+      } else {
+        // Standard case for single-line indicators
+        const indicatorExists = priceChart.data.datasets.some(ds => ds.label === strategyName);
+        
+        if (indicatorExists) { // Remove it
+          priceChart.data.datasets = priceChart.data.datasets.filter(ds => ds.label !== strategyName);
+          targetElement.classList.remove('active');
+        } else { // Add it
+          priceChart.data.datasets.push({ label: strategyName, data: result.dataPoints, borderColor: '#e11d48', borderWidth: 2, pointRadius: 0, fill: false });
+          targetElement.classList.add('active');
+        }
+      }
+      priceChart.update();
+    }
 
     async function runAnalysis() {
       loadingElement.style.display = 'flex';
       chartCanvas.style.display = 'none';
       sentimentSummary.style.display = 'none';
-      document.getElementById('strategyResults').innerHTML = '';
+      strategyResultsContainer.innerHTML = '';
       lastUpdatedElement.textContent = '';
+      strategyAnalysisResults = []; // Clear previous results
 
       if (priceChart) priceChart.destroy();
       
@@ -372,6 +435,17 @@
 
     runButton.addEventListener('click', runAnalysis);
     document.addEventListener('DOMContentLoaded', runAnalysis);
+    
+    // MODIFICATION: Add a single event listener to the container for all strategy cards
+    strategyResultsContainer.addEventListener('click', (event) => {
+      // Check if the clicked element is the chart icon
+      if (event.target.classList.contains('show-on-chart')) {
+        const strategyCard = event.target.closest('.strategy');
+        const strategyName = strategyCard.dataset.strategyName;
+        toggleIndicatorOnChart(strategyName, event.target);
+      }
+    });
+
   </script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
