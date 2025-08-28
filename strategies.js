@@ -4,13 +4,14 @@ export const strategies = [
     description: "SMA indicates the average price over a given period.",
     evaluate: (data) => {
       try {
-        const sma = calculateSMA(data);
+        const smaData = calculateSMA(data); // Returns the full array
         const currentPrice = data[data.length - 1].price || 0;
-        const signal = currentPrice > sma[sma.length - 1] ? 'Bullish' : 'Bearish';
-        return { match: true, signal, description: 'Simple Moving Average' };
+        const signal = currentPrice > smaData[smaData.length - 1] ? 'Bullish' : 'Bearish';
+        // MODIFICATION: Return the full data series for plotting
+        return { match: true, signal, dataPoints: smaData };
       } catch (error) {
         console.error('Error in SMA evaluation:', error);
-        return { match: false, signal: 'Error', description: 'Simple Moving Average' };
+        return { match: false, signal: 'Error' };
       }
     }
   },
@@ -21,10 +22,10 @@ export const strategies = [
       try {
         const rsi = calculateRSI(data);
         const signal = rsi > 70 ? 'Overbought' : (rsi < 30 ? 'Oversold' : 'No Signal');
-        return { match: signal !== 'No Signal', signal, description: 'RSI Overbought/Oversold' };
+        return { match: signal !== 'No Signal', signal };
       } catch (error) {
         console.error('Error in RSI evaluation:', error);
-        return { match: false, signal: 'Error', description: 'RSI Overbought/Oversold' };
+        return { match: false, signal: 'Error' };
       }
     }
   },
@@ -37,10 +38,10 @@ export const strategies = [
         const lastMacd = macd[macd.length - 1];
         const lastSignal = signal[signal.length - 1];
         const signalLine = lastMacd > lastSignal ? 'Bullish Cross' : 'Bearish Cross';
-        return { match: signalLine === 'Bullish Cross', signal: signalLine, description: 'MACD Cross' };
+        return { match: signalLine === 'Bullish Cross', signal: signalLine };
       } catch (error) {
         console.error('Error in MACD evaluation:', error);
-        return { match: false, signal: 'Error', description: 'MACD Cross' };
+        return { match: false, signal: 'Error' };
       }
     }
   },
@@ -53,10 +54,12 @@ export const strategies = [
         const lastPrice = data[data.length - 1].price || 0;
         const signalUp = lastPrice > upperBand[upperBand.length - 1] ? 'Bullish Breakout' : 'No Signal';
         const signalDown = lastPrice < lowerBand[lowerBand.length - 1] ? 'Bearish Breakout' : 'No Signal';
-        return { match: signalUp !== 'No Signal' || signalDown !== 'No Signal', signal: `${signalUp} | ${signalDown}`, description: 'Bollinger Bands Breakout' };
+        // MODIFICATION: Return both bands for plotting
+        const dataPoints = { upper: upperBand, lower: lowerBand };
+        return { match: signalUp !== 'No Signal' || signalDown !== 'No Signal', signal: `${signalUp} | ${signalDown}`, dataPoints };
       } catch (error) {
         console.error('Error in Bollinger Bands evaluation:', error);
-        return { match: false, signal: 'Error', description: 'Bollinger Bands Breakout' };
+        return { match: false, signal: 'Error' };
       }
     }
   },
@@ -65,16 +68,19 @@ export const strategies = [
     description: "EMA gives more weight to recent prices.",
     evaluate: (data) => {
       try {
-        const ema = calculateEMA(data);
+        const emaData = calculateEMA(data); // Returns the full array
         const currentPrice = data[data.length - 1].price || 0;
-        const signal = currentPrice > ema[ema.length - 1] ? 'Bullish' : 'Bearish';
-        return { match: true, signal, description: 'Exponential Moving Average' };
+        const signal = currentPrice > emaData[emaData.length - 1] ? 'Bullish' : 'Bearish';
+        // MODIFICATION: Return the full data series for plotting
+        return { match: true, signal, dataPoints: emaData };
       } catch (error) {
         console.error('Error in EMA evaluation:', error);
-        return { match: false, signal: 'Error', description: 'Exponential Moving Average' };
+        return { match: false, signal: 'Error' };
       }
     }
   },
+  // ... The rest of your strategies remain unchanged ...
+  // NOTE: I have omitted the rest for brevity, but you should keep them in your file.
   {
     name: "Golden Cross",
     description: "Bullish crossover when the short-term moving average crosses above the long-term moving average.",
@@ -607,12 +613,14 @@ export const strategies = [
   }
 ];
 
+// Calculation functions (SMA, RSI, etc.) are below
+// Ensure you have all the original calculation functions here
 function calculateSMA(data, period = 20) {
   if (!data || data.length < period) return Array(data ? data.length : 0).fill(0);
   const sma = [];
   for (let i = 0; i < data.length; i++) {
     if (i < period - 1) {
-      sma.push(0);
+      sma.push(null); // Use null for periods before calculation is possible
     } else {
       const sum = data.slice(i - period + 1, i + 1).reduce((acc, curr) => acc + (curr.price || 0), 0);
       sma.push(sum / period);
@@ -647,7 +655,7 @@ function calculateEMA(data, period = 12) {
   const ema = [];
   const multiplier = 2 / (period + 1);
   let initialSMA = data.slice(0, period).reduce((acc, curr) => acc + (curr.price || 0), 0) / period;
-  ema.push(...Array(period - 1).fill(0), initialSMA);
+  ema.push(...Array(period - 1).fill(null), initialSMA);
   for (let i = period; i < data.length; i++) {
     const emaValue = ((data[i].price || 0) - ema[i - 1]) * multiplier + ema[i - 1];
     ema.push(emaValue);
@@ -670,8 +678,8 @@ function calculateBollingerBands(data, period = 20, multiplier = 2) {
   const bands = { upperBand: [], lowerBand: [] };
   for (let i = 0; i < data.length; i++) {
     if (i < period - 1) {
-      bands.upperBand.push(0);
-      bands.lowerBand.push(0);
+      bands.upperBand.push(null);
+      bands.lowerBand.push(null);
     } else {
       const prices = data.slice(i - period + 1, i + 1).map(d => d.price || 0);
       const mean = prices.reduce((acc, p) => acc + p, 0) / period;
