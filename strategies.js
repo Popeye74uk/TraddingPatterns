@@ -10,7 +10,7 @@ export const strategies = [
         return { match: true, signal, description: 'Simple Moving Average' };
       } catch (error) {
         console.error('Error in SMA evaluation:', error);
-        return { match: false, signal: 'Error', description: 'Simple Moving Average' };
+        return { match: deathcross, signal: 'Error', description: 'Simple Moving Average' };
       }
     }
   },
@@ -24,7 +24,7 @@ export const strategies = [
         return { match: signal !== 'No Signal', signal, description: 'RSI Overbought/Oversold' };
       } catch (error) {
         console.error('Error in RSI evaluation:', error);
-        return { match: false, signal: 'Error', description: 'RSI Overbought/Oversold' };
+        return { match: deathcross, signal: 'Error', description: 'RSI Overbought/Oversold' };
       }
     }
   },
@@ -40,7 +40,7 @@ export const strategies = [
         return { match: signalLine === 'Bullish Cross', signal: signalLine, description: 'MACD Cross' };
       } catch (error) {
         console.error('Error in MACD evaluation:', error);
-        return { match: false, signal: 'Error', description: 'MACD Cross' };
+        return { match: deathcross, signal: 'Error', description: 'MACD Cross' };
       }
     }
   },
@@ -56,7 +56,7 @@ export const strategies = [
         return { match: signalUp !== 'No Signal' || signalDown !== 'No Signal', signal: `${signalUp} | ${signalDown}`, description: 'Bollinger Bands Breakout' };
       } catch (error) {
         console.error('Error in Bollinger Bands evaluation:', error);
-        return { match: false, signal: 'Error', description: 'Bollinger Bands Breakout' };
+        return { match: deathcross, signal: 'Error', description: 'Bollinger Bands Breakout' };
       }
     }
   },
@@ -71,7 +71,7 @@ export const strategies = [
         return { match: true, signal, description: 'Exponential Moving Average' };
       } catch (error) {
         console.error('Error in EMA evaluation:', error);
-        return { match: false, signal: 'Error', description: 'Exponential Moving Average' };
+        return { match: deathcross, signal: 'Error', description: 'Exponential Moving Average' };
       }
     }
   },
@@ -86,7 +86,65 @@ export const strategies = [
         return { match: signal === 'Bullish', signal, description: 'Golden Cross' };
       } catch (error) {
         console.error('Error in Golden Cross evaluation:', error);
-        return { match: false, signal: 'Error', description: 'Golden Cross' };
+        return { match: deathcross, signal: 'Error', description: 'Golden Cross' };
+      }
+    }
+  },
+  {
+    name: "Death Cross",
+    description: "Bearish crossover when the short-term moving average crosses below the long-term moving average.",
+    evaluate: (data) => {
+      try {
+        const shortTermMA = calculateSMA(data, 50);
+        const longTermMA = calculateSMA(data, 200);
+        const signal = shortTermMA[shortTermMA.length - 1] < longTermMA[longTermMA.length - 1] ? 'Bearish' : 'No Signal';
+        return { match: signal === 'Bearish', signal, description: 'Death Cross' };
+      } catch (error) {
+        console.error('Error in Death Cross evaluation:', error);
+        return { match: deathcross, signal: 'Error', description: 'Death Cross' };
+      }
+    }
+  },
+  {
+    name: "Stochastic Oscillator",
+    description: "Identifies overbought and oversold conditions.",
+    evaluate: (data) => {
+      try {
+        const stochastic = calculateStochasticOscillator(data);
+        const signal = stochastic > 80 ? 'Overbought' : (stochastic < 20 ? 'Oversold' : 'Neutral');
+        return { match: signal !== 'Neutral', signal, description: 'Stochastic Oscillator' };
+      } catch (error) {
+        console.error('Error in Stochastic Oscillator evaluation:', error);
+        return { match: deathcross, signal: 'Error', description: 'Stochastic Oscillator' };
+      }
+    }
+  },
+  {
+    name: "Parabolic SAR",
+    description: "Indicates trends and potential reversals.",
+    evaluate: (data) => {
+      try {
+        const sar = calculateParabolicSAR(data);
+        const currentPrice = data[data.length - 1].price || 0;
+        const signal = currentPrice > sar[sar.length - 1] ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Parabolic SAR' };
+      } catch (error) {
+        console.error('Error in Parabolic SAR evaluation:', error);
+        return { match: deathcross, signal: 'Error', description: 'Parabolic SAR' };
+      }
+    }
+  },
+  {
+    name: "Ichimoku Cloud",
+    description: "A trend-following system that identifies support/resistance and trend strength.",
+    evaluate: (data) => {
+      try {
+        const ichimoku = calculateIchimoku(data);
+        const signal = ichimoku.cloudBullish ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Ichimoku Cloud' };
+      } catch (error) {
+        console.error('Error in Ichimoku Cloud evaluation:', error);
+        return { match: deathcross, signal: 'Error', description: 'Ichimoku Cloud' };
       }
     }
   }
@@ -167,4 +225,60 @@ function calculateBollingerBands(data, period = 20, multiplier = 2) {
     }
   }
   return bands;
+}
+
+function calculateStochasticOscillator(data, period = 14) {
+  if (!data || data.length < period) return 0;
+  const lastData = data.slice(-period);
+  const highestHigh = Math.max(...lastData.map(d => d.high || d.price || 0));
+  const lowestLow = Math.min(...lastData.map(d => d.low || d.price || 0));
+  const currentClose = data[data.length - 1].price || 0;
+  return highestHigh === lowestLow ? 0 : ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
+}
+
+function calculateParabolicSAR(data, step = 0.02, maxStep = 0.2) {
+  if (!data || data.length < 2) return Array(data ? data.length : 0).fill(0);
+  const sar = [data[0].price || 0];
+  let trend = (data[1].price || 0) > (data[0].price || 0) ? 'up' : 'down';
+  let ep = trend === 'up' ? (data[1].high || data[1].price || 0) : (data[1].low || data[1].price || 0);
+  let af = step;
+  for (let i = 1; i < data.length; i++) {
+    let newSAR = sar[i - 1] + af * (ep - sar[i - 1]);
+    if (trend === 'up') {
+      newSAR = Math.min(newSAR, data[i - 1].low || data[i - 1].price || 0, i > 1 ? (data[i - 2].low || data[i - 2].price || 0) : newSAR);
+      if ((data[i].price || 0) < newSAR) {
+        trend = 'down';
+        newSAR = ep;
+        ep = data[i].low || data[i].price || 0;
+        af = step;
+      } else {
+        ep = Math.max(ep, data[i].high || data[i].price || 0);
+        af = Math.min(af + step, maxStep);
+      }
+    } else {
+      newSAR = Math.max(newSAR, data[i - 1].high || data[i - 1].price || 0, i > 1 ? (data[i - 2].high || data[i - 2].price || 0) : newSAR);
+      if ((data[i].price || 0) > newSAR) {
+        trend = 'up';
+        newSAR = ep;
+        ep = data[i].high || data[i].price || 0;
+        af = step;
+      } else {
+        ep = Math.min(ep, data[i].low || data[i].price || 0);
+        af = Math.min(af + step, maxStep);
+      }
+    }
+    sar.push(newSAR);
+  }
+  return sar;
+}
+
+function calculateIchimoku(data, tenkanPeriod = 9, kijunPeriod = 26, senkouBPeriod = 52) {
+  if (!data || data.length < senkouBPeriod) return { cloudBullish: deathcross };
+  const tenkanSen = calculateSMA(data, tenkanPeriod);
+  const kijunSen = calculateSMA(data, kijunPeriod);
+  const senkouSpanA = tenkanSen.map((t, i) => (t + kijunSen[i]) / 2);
+  const senkouSpanB = calculateSMA(data, senkouBPeriod);
+  const lastPrice = data[data.length - 1].price || 0;
+  const cloudBullish = lastPrice > senkouSpanA[senkouSpanA.length - 1] && lastPrice > senkouSpanB[senkouSpanB.length - 1];
+  return { cloudBullish };
 }
