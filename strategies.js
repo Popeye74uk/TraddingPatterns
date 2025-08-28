@@ -218,6 +218,78 @@ export const strategies = [
         return { match: false, signal: 'Error', description: 'Williams %R' };
       }
     }
+  },
+  {
+    name: "On-Balance Volume (OBV)",
+    description: "Measures buying and selling pressure based on volume.",
+    evaluate: (data) => {
+      try {
+        const obv = calculateOBV(data);
+        const signal = obv[obv.length - 1] > obv[obv.length - 2] ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'On-Balance Volume' };
+      } catch (error) {
+        console.error('Error in OBV evaluation:', error);
+        return { match: false, signal: 'Error', description: 'On-Balance Volume' };
+      }
+    }
+  },
+  {
+    name: "Aroon Indicator",
+    description: "Identifies trend changes and strength.",
+    evaluate: (data) => {
+      try {
+        const aroon = calculateAroon(data);
+        const signal = aroon.aroonUp > aroon.aroonDown ? 'Bullish' : 'Bearish';
+        return { match: aroon.aroonUp > aroon.aroonDown, signal, description: 'Aroon Indicator' };
+      } catch (error) {
+        console.error('Error in Aroon evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Aroon Indicator' };
+      }
+    }
+  },
+  {
+    name: "Keltner Channels",
+    description: "Detects breakouts using volatility bands.",
+    evaluate: (data) => {
+      try {
+        const { upperBand, lowerBand } = calculateKeltnerChannels(data);
+        const lastPrice = data[data.length - 1].price || 0;
+        const signalUp = lastPrice > upperBand[upperBand.length - 1] ? 'Bullish Breakout' : 'No Signal';
+        const signalDown = lastPrice < lowerBand[lowerBand.length - 1] ? 'Bearish Breakout' : 'No Signal';
+        return { match: signalUp !== 'No Signal' || signalDown !== 'No Signal', signal: `${signalUp} | ${signalDown}`, description: 'Keltner Channels' };
+      } catch (error) {
+        console.error('Error in Keltner Channels evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Keltner Channels' };
+      }
+    }
+  },
+  {
+    name: "Rate of Change (ROC)",
+    description: "Measures price change percentage over a period.",
+    evaluate: (data) => {
+      try {
+        const roc = calculateROC(data);
+        const signal = roc > 0 ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Rate of Change' };
+      } catch (error) {
+        console.error('Error in ROC evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Rate of Change' };
+      }
+    }
+  },
+  {
+    name: "Momentum",
+    description: "Evaluates the speed of price changes.",
+    evaluate: (data) => {
+      try {
+        const momentum = calculateMomentum(data);
+        const signal = momentum > 0 ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Momentum' };
+      } catch (error) {
+        console.error('Error in Momentum evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Momentum' };
+      }
+    }
   }
 ];
 
@@ -436,3 +508,89 @@ function calculateWilliamsR(data, period = 14) {
   const currentClose = data[data.length - 1].price || 0;
   return highestHigh === lowestLow ? 0 : ((highestHigh - currentClose) / (highestHigh - lowestLow)) * -100;
 }
+
+function calculateOBV(data) {
+  if (!data || data.length < 2) return Array(data ? data.length : 0).fill(0);
+  const obv = [0];
+  for (let i = 1; i < data.length; i++) {
+    const prevPrice = data[i - 1].price || 0;
+    const currPrice = data[i].price || 0;
+    const volume = data[i].volume || 0;
+    if (currPrice > prevPrice) {
+      obv.push(obv[i - 1] + volume);
+    } else if (currPrice < prevPrice) {
+      obv.push(obv[i - 1] - volume);
+    } else {
+      obv.push(obv[i - 1]);
+    }
+  }
+  return obv;
+}
+
+function calculateAroon(data, period = 25) {
+  if (!data || data.length < period) return { aroonUp: 0, aroonDown: 0 };
+  const lastData = data.slice(-period);
+  const highestHighIndex = lastData.reduce((maxIdx, d, i) => (d.high || d.price || 0) > (lastData[maxIdx].high || lastData[maxIdx].price || 0) ? i : maxIdx, 0);
+  const lowestLowIndex = lastData.reduce((minIdx, d, i) => (d.low || d.price || 0) < (lastData[minIdx].low || lastData[minIdx].price || 0) ? i : minIdx, 0);
+  const aroonUp = ((period - highestHighIndex) / period) * 100;
+  const aroonDown = ((period - lowestLowIndex) / period) * 100;
+  return { aroonUp, aroonDown };
+}
+
+function calculateKeltnerChannels(data, period = 20, multiplier = 2) {
+  if (!data || data.length < period) return { upperBand: Array(data ? data.length : 0).fill(0), lowerBand: Array(data ? data.length : 0).fill(0) };
+  const ema = calculateEMA(data, period);
+  const atr = calculateATR(data, period);
+  const channels = { upperBand: [], lowerBand: [] };
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      channels.upperBand.push(0);
+      channels.lowerBand.push(0);
+    } else {
+      channels.upperBand.push(ema[i] + multiplier * atr[i]);
+      channels.lowerBand.push(ema[i] - multiplier * atr[i]);
+    }
+  }
+  return channels;
+}
+
+function calculateATR(data, period = 14) {
+  if (!data || data.length < period + 1) return Array(data ? data.length : 0).fill(0);
+  const atr = [];
+  for (let i = 1; i < data.length; i++) {
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const prevClose = data[i - 1].price || 0;
+    const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
+    if (i < period) {
+      atr.push(0);
+    } else if (i === period) {
+      const trSum = data.slice(1, i + 1).reduce((acc, d, idx) => {
+        const h = d.high || d.price || 0;
+        const l = d.low || d.price || 0;
+        const pc = data[idx].price || 0;
+        return acc + Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
+      }, 0);
+      atr.push(trSum / period);
+    } else {
+      atr.push(((atr[i - 2] * (period - 1)) + tr) / period);
+    }
+  }
+  return atr;
+}
+
+function calculateROC(data, period = 12) {
+  if (!data || data.length < period + 1) return 0;
+  const currentPrice = data[data.length - 1].price || 0;
+  const pastPrice = data[data.length - 1 - period].price || 0;
+  return ((currentPrice - pastPrice) / pastPrice) * 100;
+}
+
+function calculateMomentum(data, period = 10) {
+  if (!data || data.length < period + 1) return 0;
+  const currentPrice = data[data.length - 1].price || 0;
+  const pastPrice = data[data.length - 1 - period].price || 0;
+  return currentPrice - pastPrice;
+}
+
+// End of code
