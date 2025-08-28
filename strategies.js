@@ -290,6 +290,146 @@ export const strategies = [
         return { match: false, signal: 'Error', description: 'Momentum' };
       }
     }
+  },
+  {
+    name: "Accumulation/Distribution Line (ADL)",
+    description: "Tracks money flow based on price and volume.",
+    evaluate: (data) => {
+      try {
+        const adl = calculateADL(data);
+        const signal = adl[adl.length - 1] > adl[adl.length - 2] ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Accumulation/Distribution Line' };
+      } catch (error) {
+        console.error('Error in ADL evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Accumulation/Distribution Line' };
+      }
+    }
+  },
+  {
+    name: "Chaikin Money Flow (CMF)",
+    description: "Measures buying and selling pressure over a period.",
+    evaluate: (data) => {
+      try {
+        const cmf = calculateCMF(data);
+        const signal = cmf > 0 ? 'Bullish' : 'Bearish';
+        return { match: cmf > 0, signal, description: 'Chaikin Money Flow' };
+      } catch (error) {
+        console.error('Error in CMF evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Chaikin Money Flow' };
+      }
+    }
+  },
+  {
+    name: "Stochastic RSI",
+    description: "Combines Stochastic Oscillator and RSI for overbought/oversold signals.",
+    evaluate: (data) => {
+      try {
+        const stochRSI = calculateStochasticRSI(data);
+        const signal = stochRSI > 0.8 ? 'Overbought' : (stochRSI < 0.2 ? 'Oversold' : 'Neutral');
+        return { match: signal !== 'Neutral', signal, description: 'Stochastic RSI' };
+      } catch (error) {
+        console.error('Error in Stochastic RSI evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Stochastic RSI' };
+      }
+    }
+  },
+  {
+    name: "Force Index",
+    description: "Gauges price movement strength with volume.",
+    evaluate: (data) => {
+      try {
+        const forceIndex = calculateForceIndex(data);
+        const signal = forceIndex > 0 ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Force Index' };
+      } catch (error) {
+        console.error('Error in Force Index evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Force Index' };
+      }
+    }
+  },
+  {
+    name: "Ease of Movement (EMV)",
+    description: "Assesses price movement ease based on volume.",
+    evaluate: (data) => {
+      try {
+        const emv = calculateEMV(data);
+        const signal = emv > 0 ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Ease of Movement' };
+      } catch (error) {
+        console.error('Error in EMV evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Ease of Movement' };
+      }
+    }
+  },
+  {
+    name: "Ultimate Oscillator",
+    description: "Combines multiple timeframes for momentum signals.",
+    evaluate: (data) => {
+      try {
+        const uo = calculateUltimateOscillator(data);
+        const signal = uo > 70 ? 'Overbought' : (uo < 30 ? 'Oversold' : 'Neutral');
+        return { match: signal !== 'Neutral', signal, description: 'Ultimate Oscillator' };
+      } catch (error) {
+        console.error('Error in Ultimate Oscillator evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Ultimate Oscillator' };
+      }
+    }
+  },
+  {
+    name: "TRIX",
+    description: "Shows the rate of change of a triple-smoothed EMA.",
+    evaluate: (data) => {
+      try {
+        const trix = calculateTRIX(data);
+        const signal = trix > 0 ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'TRIX' };
+      } catch (error) {
+        console.error('Error in TRIX evaluation:', error);
+        return { match: false, signal: 'Error', description: 'TRIX' };
+      }
+    }
+  },
+  {
+    name: "Vortex Indicator",
+    description: "Identifies trend reversals.",
+    evaluate: (data) => {
+      try {
+        const vortex = calculateVortex(data);
+        const signal = vortex.plusVI > vortex.minusVI ? 'Bullish' : 'Bearish';
+        return { match: vortex.plusVI > vortex.minusVI, signal, description: 'Vortex Indicator' };
+      } catch (error) {
+        console.error('Error in Vortex evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Vortex Indicator' };
+      }
+    }
+  },
+  {
+    name: "Chande Momentum Oscillator (CMO)",
+    description: "Measures pure momentum.",
+    evaluate: (data) => {
+      try {
+        const cmo = calculateCMO(data);
+        const signal = cmo > 50 ? 'Overbought' : (cmo < -50 ? 'Oversold' : 'Neutral');
+        return { match: signal !== 'Neutral', signal, description: 'Chande Momentum Oscillator' };
+      } catch (error) {
+        console.error('Error in CMO evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Chande Momentum Oscillator' };
+      }
+    }
+  },
+  {
+    name: "Detrended Price Oscillator (DPO)",
+    description: "Removes trend to focus on cycles.",
+    evaluate: (data) => {
+      try {
+        const dpo = calculateDPO(data);
+        const signal = dpo > 0 ? 'Bullish' : 'Bearish';
+        return { match: true, signal, description: 'Detrended Price Oscillator' };
+      } catch (error) {
+        console.error('Error in DPO evaluation:', error);
+        return { match: false, signal: 'Error', description: 'Detrended Price Oscillator' };
+      }
+    }
   }
 ];
 
@@ -591,6 +731,148 @@ function calculateMomentum(data, period = 10) {
   const currentPrice = data[data.length - 1].price || 0;
   const pastPrice = data[data.length - 1 - period].price || 0;
   return currentPrice - pastPrice;
+}
+
+function calculateADL(data) {
+  if (!data || data.length < 2) return Array(data ? data.length : 0).fill(0);
+  const adl = [0];
+  for (let i = 1; i < data.length; i++) {
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const close = data[i].price || 0;
+    const volume = data[i].volume || 0;
+    const mfm = ((close - low) - (high - close)) / (high - low === 0 ? 1 : high - low);
+    adl.push(adl[i - 1] + mfm * volume);
+  }
+  return adl;
+}
+
+function calculateCMF(data, period = 21) {
+  if (!data || data.length < period) return 0;
+  let sumMFM = 0, sumVolume = 0;
+  for (let i = data.length - period; i < data.length; i++) {
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const close = data[i].price || 0;
+    const volume = data[i].volume || 0;
+    const mfm = ((close - low) - (high - close)) / (high - low === 0 ? 1 : high - low);
+    sumMFM += mfm * volume;
+    sumVolume += volume;
+  }
+  return sumVolume === 0 ? 0 : sumMFM / sumVolume;
+}
+
+function calculateStochasticRSI(data, period = 14) {
+  if (!data || data.length < period + 1) return 0;
+  const rsiValues = data.slice(-period).map((_, i) => calculateRSI(data.slice(0, data.length - period + i + 1)));
+  const highestRSI = Math.max(...rsiValues);
+  const lowestRSI = Math.min(...rsiValues);
+  const currentRSI = rsiValues[rsiValues.length - 1];
+  return highestRSI === lowestRSI ? 0 : (currentRSI - lowestRSI) / (highestRSI - lowestRSI);
+}
+
+function calculateForceIndex(data, period = 13) {
+  if (!data || data.length < 2) return 0;
+  const priceChange = (data[data.length - 1].price || 0) - (data[data.length - 2].price || 0);
+  const volume = data[data.length - 1].volume || 0;
+  const force = priceChange * volume;
+  if (data.length < period + 1) return force;
+  const forceValues = data.slice(1).map((d, i) => ((d.price || 0) - (data[i].price || 0)) * (d.volume || 0));
+  const emaForce = calculateEMA(forceValues.map(v => ({ price: v })), period);
+  return emaForce[emaForce.length - 1];
+}
+
+function calculateEMV(data) {
+  if (!data || data.length < 2) return 0;
+  const high = data[data.length - 1].high || data[data.length - 1].price || 0;
+  const low = data[data.length - 1].low || data[data.length - 1].price || 0;
+  const prevHigh = data[data.length - 2].high || data[data.length - 2].price || 0;
+  const prevLow = data[data.length - 2].low || data[data.length - 2].price || 0;
+  const volume = data[data.length - 1].volume || 1;
+  const distanceMoved = ((high + low) / 2) - ((prevHigh + prevLow) / 2);
+  const boxRatio = (high - low) / volume;
+  return boxRatio === 0 ? 0 : distanceMoved / boxRatio;
+}
+
+function calculateUltimateOscillator(data, period1 = 7, period2 = 14, period3 = 28) {
+  if (!data || data.length < period3) return 0;
+  let bpSum1 = 0, trSum1 = 0, bpSum2 = 0, trSum2 = 0, bpSum3 = 0, trSum3 = 0;
+  for (let i = data.length - period1; i < data.length; i++) {
+    const close = data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const prevClose = i > 0 ? (data[i - 1].price || 0) : close;
+    const bp = close - Math.min(low, prevClose);
+    const tr = Math.max(data[i].high || data[i].price || 0, prevClose) - Math.min(low, prevClose);
+    bpSum1 += bp;
+    trSum1 += tr;
+  }
+  for (let i = data.length - period2; i < data.length; i++) {
+    const close = data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const prevClose = i > 0 ? (data[i - 1].price || 0) : close;
+    const bp = close - Math.min(low, prevClose);
+    const tr = Math.max(data[i].high || data[i].price || 0, prevClose) - Math.min(low, prevClose);
+    bpSum2 += bp;
+    trSum2 += tr;
+  }
+  for (let i = data.length - period3; i < data.length; i++) {
+    const close = data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const prevClose = i > 0 ? (data[i - 1].price || 0) : close;
+    const bp = close - Math.min(low, prevClose);
+    const tr = Math.max(data[i].high || data[i].price || 0, prevClose) - Math.min(low, prevClose);
+    bpSum3 += bp;
+    trSum3 += tr;
+  }
+  const avg1 = trSum1 === 0 ? 0 : bpSum1 / trSum1;
+  const avg2 = trSum2 === 0 ? 0 : bpSum2 / trSum2;
+  const avg3 = trSum3 === 0 ? 0 : bpSum3 / trSum3;
+  return (100 * (4 * avg1 + 2 * avg2 + avg3)) / (4 + 2 + 1);
+}
+
+function calculateTRIX(data, period = 15) {
+  if (!data || data.length < period * 3 + 1) return 0;
+  const ema1 = calculateEMA(data, period);
+  const ema2 = calculateEMA(ema1.map(v => ({ price: v })), period);
+  const ema3 = calculateEMA(ema2.map(v => ({ price: v })), period);
+  const prevTRIX = ema3[ema3.length - 2] === 0 ? 0 : ((ema3[ema3.length - 1] - ema3[ema3.length - 2]) / ema3[ema3.length - 2]) * 100;
+  return prevTRIX;
+}
+
+function calculateVortex(data, period = 14) {
+  if (!data || data.length < period + 1) return { plusVI: 0, minusVI: 0 };
+  let plusVM = 0, minusVM = 0, trSum = 0;
+  for (let i = data.length - period; i < data.length; i++) {
+    const high = data[i].high || data[i].price || 0;
+    const low = data[i].low || data[i].price || 0;
+    const prevClose = i > 0 ? (data[i - 1].price || 0) : 0;
+    const prevHigh = i > 0 ? (data[i - 1].high || data[i - 1].price || 0) : 0;
+    const prevLow = i > 0 ? (data[i - 1].low || data[i - 1].price || 0) : 0;
+    plusVM += Math.abs(high - prevLow);
+    minusVM += Math.abs(low - prevHigh);
+    trSum += Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
+  }
+  const plusVI = trSum === 0 ? 0 : plusVM / trSum;
+  const minusVI = trSum === 0 ? 0 : minusVM / trSum;
+  return { plusVI, minusVI };
+}
+
+function calculateCMO(data, period = 20) {
+  if (!data || data.length < period + 1) return 0;
+  let sumGains = 0, sumLosses = 0;
+  for (let i = data.length - period; i < data.length; i++) {
+    const change = (data[i].price || 0) - (data[i - 1].price || 0);
+    if (change > 0) sumGains += change;
+    else sumLosses += Math.abs(change);
+  }
+  return sumGains + sumLosses === 0 ? 0 : ((sumGains - sumLosses) / (sumGains + sumLosses)) * 100;
+}
+
+function calculateDPO(data, period = 20) {
+  if (!data || data.length < period + 1) return 0;
+  const offset = Math.floor(period / 2) + 1;
+  const sma = calculateSMA(data, period);
+  return (data[data.length - 1].price || 0) - sma[sma.length - 1 - offset];
 }
 
 // End of code
