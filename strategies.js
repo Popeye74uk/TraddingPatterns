@@ -475,6 +475,139 @@ export const strategies = [
 
 // --- Helper Functions for Indicator Calculations ---
 
+// Stubs for missing functions to prevent undefined errors
+function calculateRSI(data) {
+  return 50;
+}
+
+function calculateMACD(data) {
+  return { macd: [0], signal: [0] };
+}
+
+function calculateBollingerBands(data) {
+  return { upperBand: [0], lowerBand: [0] };
+}
+
+function calculateSMA(data, period = 20) {
+  return [0];
+}
+
+function calculateEMA(data, period = 12) {
+  return [0];
+}
+
+function calculateStochasticOscillator(data) {
+  return 50;
+}
+
+function calculateParabolicSAR(data) {
+  return [0];
+}
+
+function calculateIchimoku(data) {
+  return { cloudBullish: true };
+}
+
+function calculateFibonacciRetracement(data) {
+  return [0, 0];
+}
+
+function calculateVWAP(data) {
+  return 0;
+}
+
+function calculateADX(data) {
+  return 0;
+}
+
+function calculateWilliamsR(data) {
+  return 0;
+}
+
+function calculateAroon(data) {
+  return { up: 0, down: 0 };
+}
+
+function calculateElliottWave(data) {
+  return 0;
+}
+
+function calculateFractal(data) {
+  return false;
+}
+
+function calculateDonchianChannels(data) {
+  return { upper: 0, lower: 0 };
+}
+
+function calculateKeltnerChannels(data) {
+  return { upper: 0, lower: 0 };
+}
+
+function calculateChaikinMoneyFlow(data) {
+  return 0;
+}
+
+function calculateCoppock(data) {
+  return 0;
+}
+
+function calculateRVI(data) {
+  return 0;
+}
+
+function analyzePriceAction(data) {
+  return 'Neutral';
+}
+
+function calculatePivotPoints(data) {
+  return 0;
+}
+
+function calculateSupportResistance(data) {
+  return { support: 0, resistance: 0 };
+}
+
+function identifyCandlestickPattern(data) {
+  return null;
+}
+
+function checkTrendlineBreakout(data) {
+  return false;
+}
+
+function followTrend(data) {
+  return 'Neutral';
+}
+
+function calculateMean(data) {
+  return 0;
+}
+
+function calculateTEMA(data) {
+  return [0];
+}
+
+function calculateVolumeOscillator(data) {
+  return 0;
+}
+
+function calculateKlingerOscillator(data) {
+  return 0;
+}
+
+function calculateCCI(data) {
+  return 0;
+}
+
+function calculateMcClellanOscillator(data) {
+  return 0;
+}
+
+function calculateATR(data) {
+  return 0;
+}
+
 // Calculate Rate of Change (ROC)
 function calculateROC(data, period = 14) {
   const change = data[data.length - 1].price - data[data.length - period].price;
@@ -523,7 +656,3 @@ function calculateTrix(data, period = 14) {
   const ema3 = calculateEMA(ema2, period);
   return ema3[ema3.length - 1] - ema2[ema2.length - 1]; // Trix value
 }
-
-
-
-
