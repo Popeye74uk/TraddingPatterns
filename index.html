@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CoinScan v3.4</title>
+  <title>CoinScan v3.50</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script type="module" src="strategies.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto+Mono&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-color: #121826;
@@ -27,6 +27,7 @@
       --neutral-bg: rgba(107, 114, 128, 0.1);
       --neutral-border: #6b7280;
       --font-family: 'Poppins', sans-serif;
+      --font-mono: 'Roboto Mono', monospace;
     }
     body {
       font-family: var(--font-family);
@@ -155,49 +156,80 @@
     }
     .debug.hidden { display: none; }
     
-    /* Additional styles for the Synoptic Signal card */
+    /* --- NEW PROFESSIONAL DESIGN FOR SYNOPTIC CARD --- */
     .synoptic-card {
-        display: none; /* Hidden by default, shown via JS */
-        border: 2px solid var(--border-color);
-        padding: 25px;
-        transition: all 0.3s ease-in-out;
+        display: none;
+        padding: 0;
+        border: 1px solid var(--border-color);
+        overflow: hidden; /* Ensures child borders don't poke out */
     }
-    .synoptic-header {
+    .synoptic-main {
         display: flex;
-        justify-content: space-between;
+        gap: 25px;
+        padding: 25px;
         align-items: center;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 15px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .synoptic-gauge {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        flex-shrink: 0;
+    }
+    .synoptic-gauge-bg, .synoptic-gauge-value {
+        fill: none;
+        stroke-width: 12;
+    }
+    .synoptic-gauge-bg {
+        stroke: var(--border-color);
+    }
+    .synoptic-gauge-value {
+        stroke: var(--primary-color);
+        stroke-linecap: round;
+        transform-origin: 50% 50%;
+        transform: rotate(-90deg);
+        transition: stroke-dashoffset 0.5s ease-in-out;
+    }
+    .synoptic-gauge-text {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    .synoptic-details {
+        flex-grow: 1;
     }
     .synoptic-title {
-        font-size: 1.8rem;
+        font-size: 2.2rem;
         font-weight: 700;
-        margin: 0;
+        margin: 0 0 10px 0;
         display: flex;
         align-items: center;
         gap: 12px;
     }
-    .synoptic-confidence {
-        font-size: 1.5rem;
-        font-weight: 600;
-        padding: 8px 16px;
-        border-radius: 8px;
-        background-color: var(--bg-color);
-    }
-    .synoptic-body {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 20px;
+    .synoptic-rationale {
         font-size: 1rem;
+        color: var(--text-muted-color);
+        margin: 0;
+    }
+    .synoptic-footer {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1px;
+        background-color: var(--border-color);
     }
     .synoptic-item {
-        background-color: var(--bg-color);
-        padding: 15px;
-        border-radius: 8px;
+        background-color: var(--surface-color);
+        padding: 15px 20px;
     }
     .synoptic-item h4 {
-        margin: 0 0 8px 0;
+        margin: 0 0 5px 0;
         color: var(--text-muted-color);
         font-size: 0.9rem;
         font-weight: 600;
@@ -207,17 +239,15 @@
     }
     .synoptic-item p {
         margin: 0;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         font-weight: 600;
-        word-wrap: break-word;
+        font-family: var(--font-mono);
     }
-    .synoptic-card.signal-buy { border-color: var(--success-border); }
-    .synoptic-card.signal-sell { border-color: var(--danger-border); }
-    .synoptic-card.signal-neutral { border-color: var(--neutral-border); }
-    .synoptic-confidence.signal-buy, .synoptic-title.signal-buy { color: var(--success-border); }
-    .synoptic-confidence.signal-sell, .synoptic-title.signal-sell { color: var(--danger-border); }
-    .synoptic-confidence.signal-neutral, .synoptic-title.signal-neutral { color: var(--neutral-border); }
     
+    .synoptic-card.signal-buy .synoptic-gauge-value, .synoptic-card.signal-buy .synoptic-title { color: var(--success-border); stroke: var(--success-border); }
+    .synoptic-card.signal-sell .synoptic-gauge-value, .synoptic-card.signal-sell .synoptic-title { color: var(--danger-border); stroke: var(--danger-border); }
+    .synoptic-card.signal-neutral .synoptic-gauge-value, .synoptic-card.signal-neutral .synoptic-title { color: var(--neutral-border); stroke: var(--neutral-border); }
+
     @media (max-width: 768px) {
       body { padding: 10px; }
       header { font-size: 1.75rem; padding: 15px; }
@@ -234,6 +264,8 @@
       .controls-container button {
         margin-top: 10px;
       }
+      .synoptic-main { flex-direction: column; text-align: center; }
+      .synoptic-title { justify-content: center; }
     }
   </style>
 </head>
@@ -279,25 +311,34 @@
     </div>
 
     <div id="synopticSignalCard" class="card synoptic-card">
-        <div class="synoptic-header">
-            <h3 id="synopticTitle" class="synoptic-title"><i id="synopticIcon" class="fas"></i><span id="synopticSignalText"></span></h3>
-            <div id="synopticConfidence" class="synoptic-confidence"></div>
+        <div class="synoptic-main">
+            <div class="synoptic-gauge">
+                <svg viewBox="0 0 100 100" width="120" height="120">
+                    <circle class="synoptic-gauge-bg" cx="50" cy="50" r="44"></circle>
+                    <circle id="synopticGaugeValue" class="synoptic-gauge-value" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="276.46"></circle>
+                </svg>
+                <div id="synopticConfidence" class="synoptic-gauge-text">0%</div>
+            </div>
+            <div class="synoptic-details">
+                <h3 id="synopticTitle" class="synoptic-title"><i id="synopticIcon" class="fas"></i><span id="synopticSignalText"></span></h3>
+                <p id="synopticRationale" class="synoptic-rationale"></p>
+            </div>
         </div>
-        <div class="synoptic-body">
+        <div class="synoptic-footer">
             <div class="synoptic-item">
-                <h4><i class="fas fa-lightbulb"></i>Rationale</h4>
-                <p id="synopticRationale"></p>
+                <h4><i class="fas fa-satellite-dish"></i> Market Context</h4>
+                <p id="synopticContext"></p>
             </div>
             <div class="synoptic-item">
-                <h4><i class="fas fa-sign-in-alt"></i>Entry Zone</h4>
+                <h4><i class="fas fa-sign-in-alt"></i> Entry Zone</h4>
                 <p id="synopticEntry"></p>
             </div>
             <div class="synoptic-item">
-                <h4><i class="fas fa-bullseye"></i>Take Profit</h4>
+                <h4><i class="fas fa-bullseye"></i> Take Profit</h4>
                 <p id="synopticTP"></p>
             </div>
             <div class="synoptic-item">
-                <h4><i class="fas fa-shield-alt"></i>Stop Loss</h4>
+                <h4><i class="fas fa-shield-alt"></i> Stop Loss</h4>
                 <p id="synopticSL"></p>
             </div>
         </div>
@@ -321,7 +362,7 @@
   <script type="module">
     import { strategies } from './strategies.js';
 
-    let version = 3.4; // Version updated
+    let version = 3.50; // Version updated
     document.title = `CoinScan v${version.toFixed(2)}`;
     let priceChart = null;
 
@@ -354,11 +395,8 @@
             const open = index > 0 ? data.prices[index-1][1] : price;
             const volumeDataPoint = data.total_volumes.find(p => p[0] >= timestamp);
             const volume = volumeDataPoint ? volumeDataPoint[1] : 0;
-            
-            // Simplified high/low for this example. For real trading, OHLC data is better.
             const high = Math.max(open, price); 
             const low = Math.min(open, price);
-
             return { timestamp, price, open, high, low, volume };
         });
         return fullData;
@@ -385,11 +423,9 @@
       return { className: 'signal-neutral', icon: '—', category: 'neutral' };
     }
 
-    // MODIFIED: This function now returns the results for further processing
     function evaluateStrategies(priceData) {
       showDebugData('Stage: Evaluating strategies...');
       const results = strategies.map(strategy => {
-          // Wrap in a try-catch to prevent one bad strategy from breaking the whole app
           try {
               return { name: strategy.name, description: strategy.description, ...strategy.evaluate(priceData) };
           } catch(e) {
@@ -413,99 +449,103 @@
       });
       updateSentimentBar(sentimentCounts);
       showDebugData('Stage: Strategy evaluation completed');
-      return results; // Return for synoptic calculation
+      return results;
     }
 
-    // NEW: Synoptic Signal Engine
+    // NEW: LOGICALLY OVERHAULED Synoptic Signal Engine
     function calculateSynopticSignal(evaluatedStrategies, priceData) {
         showDebugData('Stage: Calculating Synoptic Signal...');
-        const indicatorCategories = {
-            Trend: ["SMA", "EMA", "MACD", "Parabolic SAR", "Ichimoku Cloud", "ADX", "Golden Cross", "Death Cross", "Vortex Indicator", "TRIX", "KST", "PVT", "PPO", "TEMA", "HMA"],
-            Momentum: ["RSI", "Stochastic Oscillator", "CCI", "Williams %R", "ROC", "Momentum", "Stochastic RSI", "Ultimate Oscillator", "CMO", "DPO", "MFI", "Elder’s Impulse System"],
-            Volatility: ["Bollinger Bands", "Keltner Channels", "Donchian Channels", "ATR Breakout", "Mass Index"],
-            Volume: ["OBV", "ADL", "CMF", "Force Index", "EMV", "Klinger Oscillator", "BOP", "Relative Vigor Index (RVI)"]
-        };
+        
+        // Define base scores for different signal types
+        const SCORES = { 'high_conviction': 25, 'medium_conviction': 15, 'low_conviction': 10 };
 
-        const categoryScores = { Trend: 0, Momentum: 0, Volatility: 0, Volume: 0 };
         const contributingFactors = [];
+        let maxPossibleScore = 0;
 
         evaluatedStrategies.forEach(strat => {
             let score = 0;
             const signal = (strat.signal || "").toLowerCase();
+            const name = strat.name.toLowerCase();
 
-            if (signal.includes('bullish') || signal.includes('oversold')) score = 15;
-            else if (signal.includes('bearish') || signal.includes('overbought')) score = -15;
-            else if (signal.includes('strong trend') || signal.includes('breakout') || signal.includes('reversal')) score = 20;
-            
-            if (score !== 0) {
-                let categorized = false;
-                for (const category in indicatorCategories) {
-                    if (indicatorCategories[category].some(name => strat.name.includes(name))) {
-                        categoryScores[category] += score;
-                        categorized = true;
-                        break;
-                    }
-                }
-                if(categorized) contributingFactors.push({ name: strat.name, score });
+            // Assign base score based on signal conviction
+            if (name.includes('cross') || signal.includes('breakout') || signal.includes('reversal')) {
+                score = SCORES.high_conviction;
+            } else if (signal.includes('overbought') || signal.includes('oversold') || name.includes('ichimoku')) {
+                score = SCORES.medium_conviction;
+            } else if (signal.includes('bullish') || signal.includes('bearish')) {
+                score = SCORES.low_conviction;
+            }
+
+            if (score > 0) {
+                maxPossibleScore += score; // Add to max potential for dynamic thresholding
+                const isBearish = signal.includes('bearish') || signal.includes('overbought');
+                const finalScore = isBearish ? -score : score;
+                contributingFactors.push({ name: strat.name, score: finalScore });
             }
         });
+        
+        let finalScore = contributingFactors.reduce((acc, curr) => acc + curr.score, 0);
 
-        // Contextual Weighting based on ADX
-        const adxResult = evaluatedStrategies.find(s => s.name.includes("ADX"));
-        if (adxResult && adxResult.signal === 'Strong Trend') {
-            categoryScores.Trend *= 1.5;
-            categoryScores.Momentum *= 0.8;
-            showDebugData('Context: Strong Trend. Weighting Trend indicators higher.', categoryScores);
-        } else {
-            categoryScores.Trend *= 0.8;
-            categoryScores.Momentum *= 1.5;
-            showDebugData('Context: Weak Trend/Ranging. Weighting Momentum indicators higher.', categoryScores);
-        }
-
-        const finalScore = Object.values(categoryScores).reduce((a, b) => a + b, 0);
+        // Define thresholds as a percentage of the total possible score
+        const STRONG_THRESHOLD = 0.50; // 50% of max score for a strong signal
+        const WEAK_THRESHOLD = 0.25;   // 25% of max score for a weak signal
 
         let primarySignal, signalClass, iconClass;
-        if (finalScore >= 80) { primarySignal = "Strong Buy"; signalClass = 'signal-buy'; iconClass = 'fa-arrow-trend-up'; }
-        else if (finalScore >= 35) { primarySignal = "Buy"; signalClass = 'signal-buy'; iconClass = 'fa-arrow-up'; }
-        else if (finalScore <= -80) { primarySignal = "Strong Sell"; signalClass = 'signal-sell'; iconClass = 'fa-arrow-trend-down'; }
-        else if (finalScore <= -35) { primarySignal = "Sell"; signalClass = 'signal-sell'; iconClass = 'fa-arrow-down'; }
-        else { primarySignal = "Neutral"; signalClass = 'signal-neutral'; iconClass = 'fa-pause'; }
+        if (finalScore >= maxPossibleScore * STRONG_THRESHOLD) {
+            primarySignal = "Strong Buy"; signalClass = 'signal-buy'; iconClass = 'fa-arrow-trend-up';
+        } else if (finalScore >= maxPossibleScore * WEAK_THRESHOLD) {
+            primarySignal = "Buy"; signalClass = 'signal-buy'; iconClass = 'fa-arrow-up';
+        } else if (finalScore <= -maxPossibleScore * STRONG_THRESHOLD) {
+            primarySignal = "Strong Sell"; signalClass = 'signal-sell'; iconClass = 'fa-arrow-trend-down';
+        } else if (finalScore <= -maxPossibleScore * WEAK_THRESHOLD) {
+            primarySignal = "Sell"; signalClass = 'signal-sell'; iconClass = 'fa-arrow-down';
+        } else {
+            primarySignal = "Neutral"; signalClass = 'signal-neutral'; iconClass = 'fa-pause';
+        }
 
         const topFactors = contributingFactors.sort((a, b) => Math.abs(b.score) - Math.abs(a.score)).slice(0, 3);
-        const rationale = topFactors.length > 0 ? topFactors.map(f => f.name).join(', ') : 'No strong signals.';
+        const rationale = topFactors.length > 0 ? `Key drivers: ${topFactors.map(f => f.name).join(', ')}.` : 'Market is indecisive.';
         
+        const confidence = maxPossibleScore > 0 ? Math.round((Math.abs(finalScore) / maxPossibleScore) * 100) : 0;
+
+        const adxResult = evaluatedStrategies.find(s => s.name.includes("ADX"));
+        const marketContext = adxResult ? adxResult.signal : "Unknown";
+
         const currentPrice = priceData[priceData.length - 1].price;
-        // Simple but effective TP/SL using a 2% volatility factor as a fallback
-        const volatilityFactor = currentPrice * 0.02; 
-        
         const entry = `$${currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        const takeProfit = `$${(currentPrice * 1.04).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`; // 4% profit target
-        const stopLoss = `$${(currentPrice * 0.98).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`; // 2% stop loss
+        const takeProfit = `$${(currentPrice * 1.04).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        const stopLoss = `$${(currentPrice * 0.98).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+        showDebugData('Synoptic Calculation Complete', { finalScore, maxPossibleScore, confidence, primarySignal });
 
         updateSynopticCard({
-            primarySignal, signalClass, iconClass,
-            confidence: Math.round(Math.min(Math.abs(finalScore) * 1.2, 100)),
-            rationale, entry, takeProfit, stopLoss
+            primarySignal, signalClass, iconClass, confidence,
+            rationale, entry, takeProfit, stopLoss, marketContext
         });
     }
 
-    // NEW: Function to update the Synoptic Card UI
+    // NEW: Function to update the redesigned Synoptic Card UI
     function updateSynopticCard(data) {
         synopticCard.style.display = 'block';
         synopticCard.className = `card synoptic-card ${data.signalClass}`;
 
-        document.getElementById('synopticTitle').className = `synoptic-title ${data.signalClass}`;
-        document.getElementById('synopticConfidence').className = `synoptic-confidence ${data.signalClass}`;
-
         document.getElementById('synopticIcon').className = `fas ${data.iconClass}`;
         document.getElementById('synopticSignalText').textContent = data.primarySignal;
-        document.getElementById('synopticConfidence').textContent = `Confidence: ${data.confidence}%`;
         document.getElementById('synopticRationale').textContent = data.rationale;
+        
+        const confidenceEl = document.getElementById('synopticConfidence');
+        confidenceEl.textContent = `${data.confidence}%`;
+        
+        const gaugeValue = document.getElementById('synopticGaugeValue');
+        const circumference = 2 * Math.PI * 44; // 2 * pi * r
+        const offset = circumference - (data.confidence / 100) * circumference;
+        gaugeValue.style.strokeDashoffset = offset;
+
+        document.getElementById('synopticContext').textContent = data.marketContext;
         document.getElementById('synopticEntry').textContent = data.entry;
         document.getElementById('synopticTP').textContent = data.takeProfit;
         document.getElementById('synopticSL').textContent = data.stopLoss;
     }
-
 
     function updateSentimentBar(counts) {
       const { buy, sell, warn, neutral, total } = counts;
@@ -526,14 +566,13 @@
     }
 
     async function runAnalysis() {
-      // Clear debug on each run
       document.getElementById('debugInfo').innerHTML = '';
       showDebugData(`Analyzing... CoinScan v${version}`);
 
       loadingElement.style.display = 'flex';
       chartCanvas.style.display = 'none';
       sentimentSummary.style.display = 'none';
-      synopticCard.style.display = 'none'; // Hide synoptic card on new analysis
+      synopticCard.style.display = 'none';
       document.getElementById('strategyResults').innerHTML = '';
       lastUpdatedElement.textContent = '';
       if (priceChart) priceChart.destroy();
@@ -578,7 +617,6 @@
       
       lastUpdatedElement.textContent = `Last updated at ${new Date().toLocaleTimeString('en-GB')}`;
       
-      // Run evaluations and then the synoptic signal
       const evaluatedStrategies = evaluateStrategies(priceData);
       calculateSynopticSignal(evaluatedStrategies, priceData);
     }
@@ -599,4 +637,3 @@
   </script>
 </body>
 </html>
-
