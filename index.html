@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CoinScan v3.31</title>
+  <title>CoinScan v3.32</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script type="module" src="strategies.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,7 +44,6 @@
       color: var(--text-color);
       border-radius: 12px;
       border: 1px solid var(--border-color);
-      /* MODIFICATION: Removed margin-bottom to rely on the container's gap for spacing */
     }
     .container {
       display: flex;
@@ -100,7 +100,7 @@
       color: var(--text-muted-color);
     }
     #loadingMessage {
-      display: none; /* Hidden by default, shown via JS */
+      display: none;
       justify-content: center;
       align-items: center;
       min-height: 200px;
@@ -154,13 +154,76 @@
       background: #0d1117; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);
     }
     .debug.hidden { display: none; }
+    
+    /* Additional styles for the Synoptic Signal card */
+    .synoptic-card {
+        display: none; /* Hidden by default, shown via JS */
+        border: 2px solid var(--border-color);
+        padding: 25px;
+        transition: all 0.3s ease-in-out;
+    }
+    .synoptic-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .synoptic-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .synoptic-confidence {
+        font-size: 1.5rem;
+        font-weight: 600;
+        padding: 8px 16px;
+        border-radius: 8px;
+        background-color: var(--bg-color);
+    }
+    .synoptic-body {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        font-size: 1rem;
+    }
+    .synoptic-item {
+        background-color: var(--bg-color);
+        padding: 15px;
+        border-radius: 8px;
+    }
+    .synoptic-item h4 {
+        margin: 0 0 8px 0;
+        color: var(--text-muted-color);
+        font-size: 0.9rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .synoptic-item p {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        word-wrap: break-word;
+    }
+    .synoptic-card.signal-buy { border-color: var(--success-border); }
+    .synoptic-card.signal-sell { border-color: var(--danger-border); }
+    .synoptic-card.signal-neutral { border-color: var(--neutral-border); }
+    .synoptic-confidence.signal-buy, .synoptic-title.signal-buy { color: var(--success-border); }
+    .synoptic-confidence.signal-sell, .synoptic-title.signal-sell { color: var(--danger-border); }
+    .synoptic-confidence.signal-neutral, .synoptic-title.signal-neutral { color: var(--neutral-border); }
+    
     @media (max-width: 768px) {
       body { padding: 10px; }
       header { font-size: 1.75rem; padding: 15px; }
       .chart-title { font-size: 1.2rem; }
       .card { padding: 15px; }
       .strategies { grid-template-columns: 1fr; }
-      /* MODIFICATION: Added styles for mobile controls layout */
       .controls-container {
         flex-direction: column;
         align-items: stretch;
@@ -215,6 +278,31 @@
       <canvas id="priceChart"></canvas>
     </div>
 
+    <div id="synopticSignalCard" class="card synoptic-card">
+        <div class="synoptic-header">
+            <h3 id="synopticTitle" class="synoptic-title"><i id="synopticIcon" class="fas"></i><span id="synopticSignalText"></span></h3>
+            <div id="synopticConfidence" class="synoptic-confidence"></div>
+        </div>
+        <div class="synoptic-body">
+            <div class="synoptic-item">
+                <h4><i class="fas fa-lightbulb"></i>Rationale</h4>
+                <p id="synopticRationale"></p>
+            </div>
+            <div class="synoptic-item">
+                <h4><i class="fas fa-sign-in-alt"></i>Entry Zone</h4>
+                <p id="synopticEntry"></p>
+            </div>
+            <div class="synoptic-item">
+                <h4><i class="fas fa-bullseye"></i>Take Profit</h4>
+                <p id="synopticTP"></p>
+            </div>
+            <div class="synoptic-item">
+                <h4><i class="fas fa-shield-alt"></i>Stop Loss</h4>
+                <p id="synopticSL"></p>
+            </div>
+        </div>
+    </div>
+
     <div id="sentiment-summary" class="card sentiment-card" style="display: none;">
       <div id="sentiment-text" class="sentiment-text"></div>
       <div class="sentiment-bar">
@@ -233,8 +321,8 @@
   <script type="module">
     import { strategies } from './strategies.js';
 
-    let version = 3.31;
-    document.title = `CoinScan v${version.toFixed(1)}`;
+    let version = 3.32; // Version updated
+    document.title = `CoinScan v${version.toFixed(2)}`;
     let priceChart = null;
 
     const coinSelect = document.getElementById('coin-select');
@@ -245,17 +333,35 @@
     const chartTitle = document.getElementById('chartTitle');
     const lastUpdatedElement = document.getElementById('lastUpdated');
     const sentimentSummary = document.getElementById('sentiment-summary');
+    const synopticCard = document.getElementById('synopticSignalCard');
 
     async function fetchCryptoData(symbol, days) {
       showDebugData(`Stage: Starting data fetch for ${symbol}, last ${days} day(s)...`);
-      const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
+      const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
       try {
         const res = await fetch(url);
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(`API Error: ${errorData.error || res.statusText}`);
+        }
         const data = await res.json();
-        if (!res.ok) throw new Error(`API Error: ${data.error || 'Failed to fetch'}`);
-        if (!data.prices || !Array.isArray(data.prices)) throw new Error('Invalid data format from API');
+        if (!data.prices || !Array.isArray(data.prices) || data.prices.length === 0) {
+            throw new Error('Invalid or empty data format from API');
+        }
         showDebugData('Stage: Data fetched successfully');
-        return data.prices.map(([timestamp, price]) => ({ timestamp, price }));
+        
+        const fullData = data.prices.map(([timestamp, price], index) => {
+            const open = index > 0 ? data.prices[index-1][1] : price;
+            const volumeDataPoint = data.total_volumes.find(p => p[0] >= timestamp);
+            const volume = volumeDataPoint ? volumeDataPoint[1] : 0;
+            
+            // Simplified high/low for this example. For real trading, OHLC data is better.
+            const high = Math.max(open, price); 
+            const low = Math.min(open, price);
+
+            return { timestamp, price, open, high, low, volume };
+        });
+        return fullData;
       } catch (error) {
         showDebugData(`Error fetching data: ${error.message}`);
         return [];
@@ -265,7 +371,7 @@
     function showDebugData(message, data = null) {
       const debugInfoElement = document.getElementById('debugInfo');
       if (debugInfoElement) {
-        debugInfoElement.innerHTML += `${message}<br>`;
+        debugInfoElement.innerHTML += `${new Date().toLocaleTimeString()} - ${message}<br>`;
         if (data) debugInfoElement.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre><br>`;
       }
     }
@@ -274,14 +380,23 @@
       if (typeof signal !== 'string') return { className: 'signal-neutral', icon: '—', category: 'neutral' };
       const s = signal.toLowerCase();
       if (s.includes('bullish') || s.includes('oversold')) return { className: 'signal-buy', icon: '▲', category: 'buy' };
-      if (s.includes('bearish')) return { className: 'signal-sell', icon: '▼', category: 'sell' };
-      if (s.includes('overbought') || s.includes('reversal') || s.includes('breakout')) return { className: 'signal-warn', icon: '⚠️', category: 'warn' };
+      if (s.includes('bearish') || s.includes('overbought')) return { className: 'signal-sell', icon: '▼', category: 'sell' };
+      if (s.includes('reversal') || s.includes('breakout')) return { className: 'signal-warn', icon: '⚠️', category: 'warn' };
       return { className: 'signal-neutral', icon: '—', category: 'neutral' };
     }
 
+    // MODIFIED: This function now returns the results for further processing
     function evaluateStrategies(priceData) {
       showDebugData('Stage: Evaluating strategies...');
-      const results = strategies.map(strategy => ({ name: strategy.name, description: strategy.description, ...strategy.evaluate(priceData) }));
+      const results = strategies.map(strategy => {
+          // Wrap in a try-catch to prevent one bad strategy from breaking the whole app
+          try {
+              return { name: strategy.name, description: strategy.description, ...strategy.evaluate(priceData) };
+          } catch(e) {
+              showDebugData(`Error in strategy "${strategy.name}": ${e.message}`);
+              return { name: strategy.name, description: strategy.description, signal: "Error", match: false };
+          }
+      });
       results.sort((a, b) => (a.signal.includes('Bullish') && !b.signal.includes('Bullish')) ? -1 : 1);
       
       const container = document.getElementById('strategyResults');
@@ -298,7 +413,99 @@
       });
       updateSentimentBar(sentimentCounts);
       showDebugData('Stage: Strategy evaluation completed');
+      return results; // Return for synoptic calculation
     }
+
+    // NEW: Synoptic Signal Engine
+    function calculateSynopticSignal(evaluatedStrategies, priceData) {
+        showDebugData('Stage: Calculating Synoptic Signal...');
+        const indicatorCategories = {
+            Trend: ["SMA", "EMA", "MACD", "Parabolic SAR", "Ichimoku Cloud", "ADX", "Golden Cross", "Death Cross", "Vortex Indicator", "TRIX", "KST", "PVT", "PPO", "TEMA", "HMA"],
+            Momentum: ["RSI", "Stochastic Oscillator", "CCI", "Williams %R", "ROC", "Momentum", "Stochastic RSI", "Ultimate Oscillator", "CMO", "DPO", "MFI", "Elder’s Impulse System"],
+            Volatility: ["Bollinger Bands", "Keltner Channels", "Donchian Channels", "ATR Breakout", "Mass Index"],
+            Volume: ["OBV", "ADL", "CMF", "Force Index", "EMV", "Klinger Oscillator", "BOP", "Relative Vigor Index (RVI)"]
+        };
+
+        const categoryScores = { Trend: 0, Momentum: 0, Volatility: 0, Volume: 0 };
+        const contributingFactors = [];
+
+        evaluatedStrategies.forEach(strat => {
+            let score = 0;
+            const signal = (strat.signal || "").toLowerCase();
+
+            if (signal.includes('bullish') || signal.includes('oversold')) score = 15;
+            else if (signal.includes('bearish') || signal.includes('overbought')) score = -15;
+            else if (signal.includes('strong trend') || signal.includes('breakout') || signal.includes('reversal')) score = 20;
+            
+            if (score !== 0) {
+                let categorized = false;
+                for (const category in indicatorCategories) {
+                    if (indicatorCategories[category].some(name => strat.name.includes(name))) {
+                        categoryScores[category] += score;
+                        categorized = true;
+                        break;
+                    }
+                }
+                if(categorized) contributingFactors.push({ name: strat.name, score });
+            }
+        });
+
+        // Contextual Weighting based on ADX
+        const adxResult = evaluatedStrategies.find(s => s.name.includes("ADX"));
+        if (adxResult && adxResult.signal === 'Strong Trend') {
+            categoryScores.Trend *= 1.5;
+            categoryScores.Momentum *= 0.8;
+            showDebugData('Context: Strong Trend. Weighting Trend indicators higher.', categoryScores);
+        } else {
+            categoryScores.Trend *= 0.8;
+            categoryScores.Momentum *= 1.5;
+            showDebugData('Context: Weak Trend/Ranging. Weighting Momentum indicators higher.', categoryScores);
+        }
+
+        const finalScore = Object.values(categoryScores).reduce((a, b) => a + b, 0);
+
+        let primarySignal, signalClass, iconClass;
+        if (finalScore >= 80) { primarySignal = "Strong Buy"; signalClass = 'signal-buy'; iconClass = 'fa-arrow-trend-up'; }
+        else if (finalScore >= 35) { primarySignal = "Buy"; signalClass = 'signal-buy'; iconClass = 'fa-arrow-up'; }
+        else if (finalScore <= -80) { primarySignal = "Strong Sell"; signalClass = 'signal-sell'; iconClass = 'fa-arrow-trend-down'; }
+        else if (finalScore <= -35) { primarySignal = "Sell"; signalClass = 'signal-sell'; iconClass = 'fa-arrow-down'; }
+        else { primarySignal = "Neutral"; signalClass = 'signal-neutral'; iconClass = 'fa-pause'; }
+
+        const topFactors = contributingFactors.sort((a, b) => Math.abs(b.score) - Math.abs(a.score)).slice(0, 3);
+        const rationale = topFactors.length > 0 ? topFactors.map(f => f.name).join(', ') : 'No strong signals.';
+        
+        const currentPrice = priceData[priceData.length - 1].price;
+        // Simple but effective TP/SL using a 2% volatility factor as a fallback
+        const volatilityFactor = currentPrice * 0.02; 
+        
+        const entry = `$${currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        const takeProfit = `$${(currentPrice * 1.04).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`; // 4% profit target
+        const stopLoss = `$${(currentPrice * 0.98).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`; // 2% stop loss
+
+        updateSynopticCard({
+            primarySignal, signalClass, iconClass,
+            confidence: Math.round(Math.min(Math.abs(finalScore) * 1.2, 100)),
+            rationale, entry, takeProfit, stopLoss
+        });
+    }
+
+    // NEW: Function to update the Synoptic Card UI
+    function updateSynopticCard(data) {
+        synopticCard.style.display = 'block';
+        synopticCard.className = `card synoptic-card ${data.signalClass}`;
+
+        document.getElementById('synopticTitle').className = `synoptic-title ${data.signalClass}`;
+        document.getElementById('synopticConfidence').className = `synoptic-confidence ${data.signalClass}`;
+
+        document.getElementById('synopticIcon').className = `fas ${data.iconClass}`;
+        document.getElementById('synopticSignalText').textContent = data.primarySignal;
+        document.getElementById('synopticConfidence').textContent = `Confidence: ${data.confidence}%`;
+        document.getElementById('synopticRationale').textContent = data.rationale;
+        document.getElementById('synopticEntry').textContent = data.entry;
+        document.getElementById('synopticTP').textContent = data.takeProfit;
+        document.getElementById('synopticSL').textContent = data.stopLoss;
+    }
+
 
     function updateSentimentBar(counts) {
       const { buy, sell, warn, neutral, total } = counts;
@@ -319,19 +526,22 @@
     }
 
     async function runAnalysis() {
+      // Clear debug on each run
+      document.getElementById('debugInfo').innerHTML = '';
+      showDebugData(`Analyzing... CoinScan v${version}`);
+
       loadingElement.style.display = 'flex';
       chartCanvas.style.display = 'none';
       sentimentSummary.style.display = 'none';
+      synopticCard.style.display = 'none'; // Hide synoptic card on new analysis
       document.getElementById('strategyResults').innerHTML = '';
       lastUpdatedElement.textContent = '';
-
       if (priceChart) priceChart.destroy();
       
       const selectedCoin = coinSelect.value;
       const selectedDays = timeframeSelect.value;
       const coinName = coinSelect.options[coinSelect.selectedIndex].text;
       const timeName = timeframeSelect.options[timeframeSelect.selectedIndex].text;
-      
       chartTitle.textContent = `${coinName} Price - ${timeName}`;
 
       const priceData = await fetchCryptoData(selectedCoin, selectedDays);
@@ -367,7 +577,10 @@
       });
       
       lastUpdatedElement.textContent = `Last updated at ${new Date().toLocaleTimeString('en-GB')}`;
-      evaluateStrategies(priceData);
+      
+      // Run evaluations and then the synoptic signal
+      const evaluatedStrategies = evaluateStrategies(priceData);
+      calculateSynopticSignal(evaluatedStrategies, priceData);
     }
 
     runButton.addEventListener('click', runAnalysis);
@@ -386,5 +599,3 @@
   </script>
 </body>
 </html>
-
-
