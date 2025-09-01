@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CoinScan v3.70</title>
+  <title>CoinScan v3.80</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script type="module" src="strategies.js" defer></script>
@@ -69,7 +69,7 @@
     }
     .control-group { display: flex; align-items: center; gap: 8px; }
     .controls-container label { color: var(--text-muted-color); font-weight: 600; }
-    .controls-container select, .controls-container button {
+    .controls-container select, .controls-container input, .controls-container button {
       background: var(--surface-color);
       border: 1px solid var(--border-color);
       color: var(--text-color);
@@ -77,6 +77,12 @@
       border-radius: 8px;
       font-family: var(--font-family);
       font-size: 1rem;
+    }
+    .controls-container input { max-width: 120px; }
+    .controls-container input[type=number]::-webkit-inner-spin-button, 
+    .controls-container input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
     }
     .controls-container button {
       background-color: var(--primary-color);
@@ -124,20 +130,13 @@
     .synoptic-title { font-size: 2.2rem; font-weight: 700; margin: 0 0 10px 0; display: flex; align-items: center; gap: 12px; }
     .synoptic-rationale { font-size: 1rem; color: var(--text-muted-color); margin: 0; }
     .synoptic-rationale strong { color: var(--text-color); }
-    .synoptic-footer { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background-color: var(--border-color); }
+    .synoptic-footer { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background-color: var(--border-color); }
     .synoptic-item { background-color: var(--surface-color); padding: 15px 20px; }
     .synoptic-item h4 { margin: 0 0 5px 0; color: var(--text-muted-color); font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
     .synoptic-item p { margin: 0; font-size: 1.2rem; font-weight: 600; font-family: var(--font-mono); }
     .synoptic-item span { font-size: 0.9rem; font-weight: 400; margin-left: 8px; }
     .synoptic-item span.profit { color: var(--success-border); }
     .synoptic-item span.loss { color: var(--danger-border); }
-    /* New styles for the integrated investment input */
-    .investment-item { padding: 10px 20px; }
-    .investment-item label { display: block; margin-bottom: 8px; color: var(--text-muted-color); font-size: 0.9rem; font-weight: 600; }
-    .investment-item input { background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 12px; border-radius: 8px; width: 100%; font-family: var(--font-mono); font-size: 1.2rem; }
-    .investment-item input[type=number]::-webkit-inner-spin-button, 
-    .investment-item input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-
     .synoptic-card.signal-buy .synoptic-gauge-value, .synoptic-card.signal-buy .synoptic-title { color: var(--success-border); stroke: var(--success-border); }
     .synoptic-card.signal-sell .synoptic-gauge-value, .synoptic-card.signal-sell .synoptic-title { color: var(--danger-border); stroke: var(--danger-border); }
     .synoptic-card.signal-neutral .synoptic-gauge-value, .synoptic-card.signal-neutral .synoptic-title { color: var(--neutral-border); stroke: var(--neutral-border); }
@@ -185,6 +184,10 @@
             <option value="90">90 Days</option>
           </select>
         </div>
+        <div class="control-group">
+          <label for="investment-amount">Invest (USD):</label>
+          <input type="number" id="investment-amount" placeholder="e.g., 1000">
+        </div>
         <button id="run-analysis">Analyze</button>
       </div>
     </div>
@@ -211,14 +214,6 @@
             </div>
         </div>
         <div class="synoptic-footer">
-            <div class="synoptic-item investment-item">
-                <label for="investment-amount"><i class="fas fa-dollar-sign"></i> Investment Amount (USD)</label>
-                <input type="number" id="investment-amount" placeholder="e.g., 1000">
-            </div>
-            <div class="synoptic-item">
-                <h4><i class="fas fa-satellite-dish"></i> Market Context</h4>
-                <p id="synopticContext"></p>
-            </div>
             <div class="synoptic-item">
                 <h4><i class="fas fa-sign-in-alt"></i> Entry Price</h4>
                 <p id="synopticEntry"></p>
@@ -252,13 +247,13 @@
   <script type="module">
     import { strategies } from './strategies.js';
 
-    let version = 3.70; // Version updated
+    let version = 3.80; // Version updated
     document.title = `CoinScan v${version.toFixed(2)}`;
     let priceChart = null;
 
-    // DOM Element references
     const coinSelect = document.getElementById('coin-select');
     const timeframeSelect = document.getElementById('timeframe-select');
+    const investmentAmountInput = document.getElementById('investment-amount');
     const runButton = document.getElementById('run-analysis');
     const loadingElement = document.getElementById('loadingMessage');
     const chartCanvas = document.getElementById('priceChart');
@@ -266,9 +261,7 @@
     const lastUpdatedElement = document.getElementById('lastUpdated');
     const sentimentSummary = document.getElementById('sentiment-summary');
     const synopticCard = document.getElementById('synopticSignalCard');
-    const investmentAmountInput = document.getElementById('investment-amount'); // Reference moved here
 
-    // Store latest results to allow recalculation without re-fetching
     let latestPriceData = [];
     let latestEvaluatedStrategies = [];
 
@@ -347,7 +340,7 @@
       return results;
     }
 
-    function calculateSynopticSignal(evaluatedStrategies, priceData) {
+    function calculateSynopticSignal() {
         showDebugData('Stage: Calculating Synoptic Signal...');
         
         const indicatorCategories = {
@@ -360,7 +353,7 @@
         const categoryFactors = { Trend: [], Momentum: [], Volatility: [], Volume: [] };
         let maxPossibleScore = 0;
 
-        evaluatedStrategies.forEach(strat => {
+        latestEvaluatedStrategies.forEach(strat => {
             let score = 0;
             const signal = (strat.signal || "").toLowerCase();
             const name = strat.name.toLowerCase();
@@ -412,11 +405,9 @@
         const rationale = topDrivers.length > 0 ? `Driven by <strong>${topDrivers.map(f => f.name).join(', ')}</strong>` : 'Market is indecisive.';
         
         const confidence = maxPossibleScore > 0 ? Math.round((Math.abs(finalScore) / maxPossibleScore) * 100) : 0;
-        const marketContext = evaluatedStrategies.find(s => s.name.includes("ADX"))?.signal || "Unknown";
         
         updateSynopticCard({
-            primarySignal, signalClass, iconClass, confidence,
-            rationale, marketContext
+            primarySignal, signalClass, iconClass, confidence, rationale
         });
     }
 
@@ -433,13 +424,13 @@
         const circumference = 2 * Math.PI * 44;
         const offset = circumference - (data.confidence / 100) * circumference;
         gaugeValue.style.strokeDashoffset = offset;
-
-        document.getElementById('synopticContext').textContent = data.marketContext;
         
         const investment = parseFloat(investmentAmountInput.value) || 0;
         const currentPrice = latestPriceData[latestPriceData.length - 1].price;
-        const tpPrice = currentPrice * 1.04;
-        const slPrice = currentPrice * 0.98;
+        const atrValue = latestEvaluatedStrategies.find(s => s.name === "ATR Breakout")?.atrValue || currentPrice * 0.03;
+
+        const tpPrice = currentPrice + (atrValue * 2);
+        const slPrice = currentPrice - (atrValue * 1.5);
 
         document.getElementById('synopticEntry').textContent = `$${currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         
@@ -503,12 +494,12 @@
       
       lastUpdatedElement.textContent = `Last updated at ${new Date().toLocaleTimeString('en-GB')}`;
       latestEvaluatedStrategies = evaluateStrategies(latestPriceData);
-      calculateSynopticSignal(latestEvaluatedStrategies, latestPriceData);
+      calculateSynopticSignal();
     }
     
     investmentAmountInput.addEventListener('input', () => {
         if(latestPriceData.length > 0) {
-            calculateSynopticSignal(latestEvaluatedStrategies, latestPriceData);
+            calculateSynopticSignal();
         }
     });
 
