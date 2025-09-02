@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CoinScan v3.6</title>
+  <title>CoinScan v3.31</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script type="module" src="strategies.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-color: #121826;
@@ -27,7 +26,6 @@
       --neutral-bg: rgba(107, 114, 128, 0.1);
       --neutral-border: #6b7280;
       --font-family: 'Poppins', sans-serif;
-      --font-mono: 'Roboto Mono', monospace;
     }
     body {
       font-family: var(--font-family);
@@ -45,6 +43,7 @@
       color: var(--text-color);
       border-radius: 12px;
       border: 1px solid var(--border-color);
+      /* MODIFICATION: Removed margin-bottom to rely on the container's gap for spacing */
     }
     .container {
       display: flex;
@@ -69,7 +68,7 @@
     }
     .control-group { display: flex; align-items: center; gap: 8px; }
     .controls-container label { color: var(--text-muted-color); font-weight: 600; }
-    .controls-container select, .controls-container input, .controls-container button {
+    .controls-container select, .controls-container button {
       background: var(--surface-color);
       border: 1px solid var(--border-color);
       color: var(--text-color);
@@ -77,12 +76,6 @@
       border-radius: 8px;
       font-family: var(--font-family);
       font-size: 1rem;
-    }
-    .controls-container input { max-width: 120px; }
-    .controls-container input[type=number]::-webkit-inner-spin-button, 
-    .controls-container input[type=number]::-webkit-outer-spin-button { 
-        -webkit-appearance: none; 
-        margin: 0; 
     }
     .controls-container button {
       background-color: var(--primary-color);
@@ -92,10 +85,36 @@
       transition: background-color 0.2s ease;
     }
     .controls-container button:hover { background-color: #2563eb; }
-    .chart-title { margin-top: 0; margin-bottom: 10px; text-align: center; font-weight: 600; color: var(--text-muted-color); }
-    .timestamp { text-align: center; margin-top: -5px; margin-bottom: 20px; font-size: 0.9rem; color: var(--text-muted-color); }
-    #loadingMessage { display: none; justify-content: center; align-items: center; min-height: 200px; font-size: 1.2rem; color: var(--text-muted-color); }
-    .spinner { border: 5px solid rgba(255, 255, 255, 0.2); border-top: 5px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+    .chart-title {
+      margin-top: 0;
+      margin-bottom: 10px;
+      text-align: center;
+      font-weight: 600;
+      color: var(--text-muted-color);
+    }
+    .timestamp {
+      text-align: center;
+      margin-top: -5px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: var(--text-muted-color);
+    }
+    #loadingMessage {
+      display: none; /* Hidden by default, shown via JS */
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      font-size: 1.2rem;
+      color: var(--text-muted-color);
+    }
+    .spinner {
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      border-top: 5px solid var(--primary-color);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .sentiment-card { padding: 20px; }
     .sentiment-text { text-align: center; margin-bottom: 15px; font-size: 1.1rem; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
@@ -108,7 +127,11 @@
     .bar-segment.warn, .dot.warn { background-color: var(--warning-border); }
     .bar-segment.neutral, .dot.neutral { background-color: var(--neutral-border); }
     .strategies { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
-    .strategy { padding: 15px; border-radius: 8px; border: 1px solid; transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; flex-direction: column; gap: 5px; }
+    .strategy {
+      padding: 15px; border-radius: 8px; border: 1px solid;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: flex; flex-direction: column; gap: 5px;
+    }
     .strategy:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); }
     .strategy-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
     .strategy-header strong { color: var(--text-color); display: flex; align-items: center; gap: 8px; }
@@ -120,42 +143,34 @@
     .strategy.signal-warn { background: var(--warning-bg); border-color: var(--warning-border); }
     .strategy.signal-neutral { background: var(--neutral-bg); border-color: var(--neutral-border); }
     .debug-toggle-container { display: flex; justify-content: center; margin-top: 10px; }
-    #debugToggle { background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-muted-color); font-size: 1rem; font-family: var(--font-family); cursor: pointer; padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease; }
+    #debugToggle {
+      background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-muted-color);
+      font-size: 1rem; font-family: var(--font-family); cursor: pointer; padding: 8px 16px; border-radius: 8px;
+      transition: all 0.2s ease;
+    }
     #debugToggle:hover { background: var(--border-color); color: var(--text-color); }
-    .debug { font-size: 14px; font-family: monospace; color: var(--text-muted-color); height: 400px; overflow-y: auto; background: #0d1117; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); }
+    .debug {
+      font-size: 14px; font-family: monospace; color: var(--text-muted-color); height: 400px; overflow-y: auto;
+      background: #0d1117; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);
+    }
     .debug.hidden { display: none; }
-    .synoptic-card { display: none; padding: 0; border: 1px solid var(--border-color); overflow: hidden; }
-    .synoptic-main { display: flex; gap: 25px; padding: 25px; align-items: center; border-bottom: 1px solid var(--border-color); }
-    .synoptic-gauge { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
-    .synoptic-gauge-bg, .synoptic-gauge-value { fill: none; stroke-width: 12; }
-    .synoptic-gauge-bg { stroke: var(--border-color); }
-    .synoptic-gauge-value { stroke: var(--primary-color); stroke-linecap: round; transform-origin: 50% 50%; transform: rotate(-90deg); transition: stroke-dashoffset 0.5s ease-in-out; }
-    .synoptic-gauge-text { position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; }
-    .synoptic-details { flex-grow: 1; }
-    .synoptic-title { font-size: 2.2rem; font-weight: 700; margin: 0 0 10px 0; display: flex; align-items: center; gap: 12px; }
-    .synoptic-rationale { font-size: 1rem; color: var(--text-muted-color); margin: 0; }
-    .synoptic-rationale strong { color: var(--text-color); }
-    .synoptic-footer { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background-color: var(--border-color); }
-    .synoptic-item { background-color: var(--surface-color); padding: 15px 20px; }
-    .synoptic-item h4 { margin: 0 0 5px 0; color: var(--text-muted-color); font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .synoptic-item p { margin: 0; font-size: 1.2rem; font-weight: 600; font-family: var(--font-mono); }
-    .synoptic-item span { font-size: 0.9rem; font-weight: 400; margin-left: 8px; }
-    .synoptic-item span.profit { color: var(--success-border); }
-    .synoptic-item span.loss { color: var(--danger-border); }
-    .synoptic-card.signal-buy .synoptic-gauge-value, .synoptic-card.signal-buy .synoptic-title { color: var(--success-border); stroke: var(--success-border); }
-    .synoptic-card.signal-sell .synoptic-gauge-value, .synoptic-card.signal-sell .synoptic-title { color: var(--danger-border); stroke: var(--danger-border); }
-    .synoptic-card.signal-neutral .synoptic-gauge-value, .synoptic-card.signal-neutral .synoptic-title { color: var(--neutral-border); stroke: var(--neutral-border); }
     @media (max-width: 768px) {
       body { padding: 10px; }
       header { font-size: 1.75rem; padding: 15px; }
       .chart-title { font-size: 1.2rem; }
       .card { padding: 15px; }
       .strategies { grid-template-columns: 1fr; }
-      .controls-container { flex-direction: column; align-items: stretch; }
-      .control-group { justify-content: space-between; }
-      .controls-container button { margin-top: 10px; }
-      .synoptic-main { flex-direction: column; text-align: center; }
-      .synoptic-title { justify-content: center; }
+      /* MODIFICATION: Added styles for mobile controls layout */
+      .controls-container {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .control-group {
+        justify-content: space-between;
+      }
+      .controls-container button {
+        margin-top: 10px;
+      }
     }
   </style>
 </head>
@@ -189,10 +204,6 @@
             <option value="90">90 Days</option>
           </select>
         </div>
-        <div class="control-group">
-          <label for="investment-amount">Invest (USD):</label>
-          <input type="number" id="investment-amount" placeholder="e.g., 1000">
-        </div>
         <button id="run-analysis">Analyze</button>
       </div>
     </div>
@@ -202,40 +213,6 @@
       <p id="lastUpdated" class="timestamp"></p>
       <div id="loadingMessage"><div class="spinner"></div></div>
       <canvas id="priceChart"></canvas>
-    </div>
-
-    <div id="synopticSignalCard" class="card synoptic-card">
-        <div class="synoptic-main">
-            <div class="synoptic-gauge">
-                <svg viewBox="0 0 100 100" width="120" height="120">
-                    <circle class="synoptic-gauge-bg" cx="50" cy="50" r="44"></circle>
-                    <circle id="synopticGaugeValue" class="synoptic-gauge-value" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="276.46"></circle>
-                </svg>
-                <div id="synopticConfidence" class="synoptic-gauge-text">0%</div>
-            </div>
-            <div class="synoptic-details">
-                <h3 id="synopticTitle" class="synoptic-title"><i id="synopticIcon" class="fas"></i><span id="synopticSignalText"></span></h3>
-                <p id="synopticRationale" class="synoptic-rationale"></p>
-            </div>
-        </div>
-        <div class="synoptic-footer">
-            <div class="synoptic-item">
-                <h4><i class="fas fa-satellite-dish"></i> Market Context</h4>
-                <p id="synopticContext"></p>
-            </div>
-            <div class="synoptic-item">
-                <h4><i class="fas fa-sign-in-alt"></i> Entry Zone</h4>
-                <p id="synopticEntry"></p>
-            </div>
-            <div class="synoptic-item">
-                <h4><i class="fas fa-bullseye"></i> Take Profit</h4>
-                <p id="synopticTP"></p>
-            </div>
-            <div class="synoptic-item">
-                <h4><i class="fas fa-shield-alt"></i> Stop Loss</h4>
-                <p id="synopticSL"></p>
-            </div>
-        </div>
     </div>
 
     <div id="sentiment-summary" class="card sentiment-card" style="display: none;">
@@ -256,46 +233,29 @@
   <script type="module">
     import { strategies } from './strategies.js';
 
-    let version = 3.6; // Version updated
-    document.title = `CoinScan v${version.toFixed(2)}`;
+    let version = 3.31;
+    document.title = `CoinScan v${version.toFixed(1)}`;
     let priceChart = null;
 
-    // DOM Element references
     const coinSelect = document.getElementById('coin-select');
     const timeframeSelect = document.getElementById('timeframe-select');
-    const investmentAmountInput = document.getElementById('investment-amount');
     const runButton = document.getElementById('run-analysis');
     const loadingElement = document.getElementById('loadingMessage');
     const chartCanvas = document.getElementById('priceChart');
     const chartTitle = document.getElementById('chartTitle');
     const lastUpdatedElement = document.getElementById('lastUpdated');
     const sentimentSummary = document.getElementById('sentiment-summary');
-    const synopticCard = document.getElementById('synopticSignalCard');
 
     async function fetchCryptoData(symbol, days) {
       showDebugData(`Stage: Starting data fetch for ${symbol}, last ${days} day(s)...`);
-      const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
+      const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}`;
       try {
         const res = await fetch(url);
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(`API Error: ${errorData.error || res.statusText}`);
-        }
         const data = await res.json();
-        if (!data.prices || !Array.isArray(data.prices) || data.prices.length === 0) {
-            throw new Error('Invalid or empty data format from API');
-        }
+        if (!res.ok) throw new Error(`API Error: ${data.error || 'Failed to fetch'}`);
+        if (!data.prices || !Array.isArray(data.prices)) throw new Error('Invalid data format from API');
         showDebugData('Stage: Data fetched successfully');
-        
-        const fullData = data.prices.map(([timestamp, price], index) => {
-            const open = index > 0 ? data.prices[index-1][1] : price;
-            const volumeDataPoint = data.total_volumes.find(p => p[0] >= timestamp);
-            const volume = volumeDataPoint ? volumeDataPoint[1] : 0;
-            const high = Math.max(open, price); 
-            const low = Math.min(open, price);
-            return { timestamp, price, open, high, low, volume };
-        });
-        return fullData;
+        return data.prices.map(([timestamp, price]) => ({ timestamp, price }));
       } catch (error) {
         showDebugData(`Error fetching data: ${error.message}`);
         return [];
@@ -305,7 +265,7 @@
     function showDebugData(message, data = null) {
       const debugInfoElement = document.getElementById('debugInfo');
       if (debugInfoElement) {
-        debugInfoElement.innerHTML += `${new Date().toLocaleTimeString()} - ${message}<br>`;
+        debugInfoElement.innerHTML += `${message}<br>`;
         if (data) debugInfoElement.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre><br>`;
       }
     }
@@ -314,21 +274,15 @@
       if (typeof signal !== 'string') return { className: 'signal-neutral', icon: '—', category: 'neutral' };
       const s = signal.toLowerCase();
       if (s.includes('bullish') || s.includes('oversold')) return { className: 'signal-buy', icon: '▲', category: 'buy' };
-      if (s.includes('bearish') || s.includes('overbought')) return { className: 'signal-sell', icon: '▼', category: 'sell' };
-      if (s.includes('reversal') || s.includes('breakout')) return { className: 'signal-warn', icon: '⚠️', category: 'warn' };
+      if (s.includes('bearish')) return { className: 'signal-sell', icon: '▼', category: 'sell' };
+      if (s.includes('overbought') || s.includes('reversal') || s.includes('breakout')) return { className: 'signal-warn', icon: '⚠️', category: 'warn' };
       return { className: 'signal-neutral', icon: '—', category: 'neutral' };
     }
 
     function evaluateStrategies(priceData) {
       showDebugData('Stage: Evaluating strategies...');
-      const results = strategies.map(strategy => {
-          try {
-              return { name: strategy.name, ...strategy.evaluate(priceData) };
-          } catch(e) {
-              showDebugData(`Error in strategy "${strategy.name}": ${e.message}`);
-              return { name: strategy.name, signal: "Error", match: false };
-          }
-      });
+      const results = strategies.map(strategy => ({ name: strategy.name, description: strategy.description, ...strategy.evaluate(priceData) }));
+      results.sort((a, b) => (a.signal.includes('Bullish') && !b.signal.includes('Bullish')) ? -1 : 1);
       
       const container = document.getElementById('strategyResults');
       container.innerHTML = '';
@@ -339,132 +293,25 @@
         sentimentCounts[visuals.category]++;
         const div = document.createElement('div');
         div.classList.add('strategy', visuals.className);
-        div.innerHTML = `<div class="strategy-header"><strong><span class="signal-icon">${visuals.icon}</span>${result.name}</strong><span class="signal-text">(${result.signal})</span></div>`;
+        div.innerHTML = `<div class="strategy-header"><strong><span class="signal-icon">${visuals.icon}</span>${result.name}</strong><span class="signal-text">(${result.signal})</span></div><div class="strategy-description">${result.description}</div>`;
         container.appendChild(div);
       });
       updateSentimentBar(sentimentCounts);
       showDebugData('Stage: Strategy evaluation completed');
-      return results;
-    }
-
-    // UPDATED: Synoptic Signal Engine with improved logic
-    function calculateSynopticSignal(evaluatedStrategies, priceData) {
-        showDebugData('Stage: Calculating Synoptic Signal...');
-        
-        const indicatorCategories = {
-            Trend: ["SMA", "EMA", "MACD", "Parabolic SAR", "Ichimoku Cloud", "ADX", "Golden Cross", "Death Cross", "Vortex Indicator", "TRIX", "KST", "PVT", "PPO", "TEMA", "HMA"],
-            Momentum: ["RSI", "Stochastic Oscillator", "CCI", "Williams %R", "ROC", "Momentum", "Stochastic RSI", "Ultimate Oscillator", "CMO", "DPO", "MFI", "Elder’s Impulse System"],
-            Volatility: ["Bollinger Bands", "Keltner Channels", "Donchian Channels", "ATR Breakout", "Mass Index"],
-            Volume: ["OBV", "ADL", "CMF", "Force Index", "EMV", "Klinger Oscillator", "BOP", "Relative Vigor Index (RVI)"]
-        };
-        const SCORES = { 'high': 25, 'medium': 15, 'low': 10 };
-        const categoryFactors = { Trend: [], Momentum: [], Volatility: [], Volume: [] };
-        let maxPossibleScore = 0;
-
-        evaluatedStrategies.forEach(strat => {
-            let score = 0;
-            const signal = (strat.signal || "").toLowerCase();
-            const name = strat.name.toLowerCase();
-
-            if (name.includes('cross') || signal.includes('breakout') || signal.includes('reversal')) score = SCORES.high;
-            else if (signal.includes('overbought') || signal.includes('oversold') || name.includes('ichimoku')) score = SCORES.medium;
-            else if (signal.includes('bullish') || signal.includes('bearish')) score = SCORES.low;
-
-            if (score > 0) {
-                maxPossibleScore += score;
-                const isBearish = signal.includes('bearish') || signal.includes('overbought');
-                const finalScore = isBearish ? -score : score;
-                
-                for (const category in indicatorCategories) {
-                    if (indicatorCategories[category].some(n => name.includes(n.toLowerCase()))) {
-                        categoryFactors[category].push({ name: strat.name, score: finalScore });
-                        break;
-                    }
-                }
-            }
-        });
-        
-        let finalScore = Object.values(categoryFactors).flat().reduce((acc, curr) => acc + curr.score, 0);
-
-        const STRONG_THRESHOLD = 0.45; // 45% for a strong signal
-        const WEAK_THRESHOLD = 0.20;   // 20% for a weak signal
-
-        let primarySignal, signalClass, iconClass;
-        if (finalScore >= maxPossibleScore * STRONG_THRESHOLD) {
-            primarySignal = "Strong Buy"; signalClass = 'signal-buy'; iconClass = 'fa-arrow-trend-up';
-        } else if (finalScore >= maxPossibleScore * WEAK_THRESHOLD) {
-            primarySignal = "Buy"; signalClass = 'signal-buy'; iconClass = 'fa-arrow-up';
-        } else if (finalScore <= -maxPossibleScore * STRONG_THRESHOLD) {
-            primarySignal = "Strong Sell"; signalClass = 'signal-sell'; iconClass = 'fa-arrow-trend-down';
-        } else if (finalScore <= -maxPossibleScore * WEAK_THRESHOLD) {
-            primarySignal = "Sell"; signalClass = 'signal-sell'; iconClass = 'fa-arrow-down';
-        } else {
-            primarySignal = "Neutral"; signalClass = 'signal-neutral'; iconClass = 'fa-pause';
-        }
-        
-        // UPDATED: Generate a diverse rationale
-        const rationaleParts = [];
-        for (const category in categoryFactors) {
-            if (categoryFactors[category].length > 0) {
-                const topFactor = categoryFactors[category].sort((a,b) => Math.abs(b.score) - Math.abs(a.score))[0];
-                rationaleParts.push(topFactor);
-            }
-        }
-        const topDrivers = rationaleParts.sort((a,b) => Math.abs(b.score) - Math.abs(a.score)).slice(0,3);
-        const rationale = topDrivers.length > 0 ? `Driven by <strong>${topDrivers.map(f => f.name).join(', ')}</strong>` : 'Market is indecisive.';
-        
-        const confidence = maxPossibleScore > 0 ? Math.round((Math.abs(finalScore) / maxPossibleScore) * 100) : 0;
-        const marketContext = evaluatedStrategies.find(s => s.name.includes("ADX"))?.signal || "Unknown";
-        
-        updateSynopticCard({
-            primarySignal, signalClass, iconClass, confidence,
-            rationale, marketContext, priceData
-        });
-    }
-
-    function updateSynopticCard(data) {
-        synopticCard.style.display = 'block';
-        synopticCard.className = `card synoptic-card ${data.signalClass}`;
-
-        document.getElementById('synopticIcon').className = `fas ${data.iconClass}`;
-        document.getElementById('synopticSignalText').textContent = data.primarySignal;
-        document.getElementById('synopticRationale').innerHTML = data.rationale;
-        document.getElementById('synopticConfidence').textContent = `${data.confidence}%`;
-        
-        const gaugeValue = document.getElementById('synopticGaugeValue');
-        const circumference = 2 * Math.PI * 44;
-        const offset = circumference - (data.confidence / 100) * circumference;
-        gaugeValue.style.strokeDashoffset = offset;
-
-        document.getElementById('synopticContext').textContent = data.marketContext;
-        
-        const investment = parseFloat(investmentAmountInput.value) || 0;
-        const currentPrice = data.priceData[data.priceData.length - 1].price;
-        const tpPrice = currentPrice * 1.04;
-        const slPrice = currentPrice * 0.98;
-
-        document.getElementById('synopticEntry').textContent = `$${currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        
-        const tpElement = document.getElementById('synopticTP');
-        const slElement = document.getElementById('synopticSL');
-
-        if (investment > 0) {
-            const quantity = investment / currentPrice;
-            const profit = (tpPrice - currentPrice) * quantity;
-            const loss = (currentPrice - slPrice) * quantity;
-            tpElement.innerHTML = `$${tpPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="profit">(+$${profit.toFixed(2)})</span>`;
-            slElement.innerHTML = `$${slPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="loss">(-$${loss.toFixed(2)})</span>`;
-        } else {
-            tpElement.innerHTML = `$${tpPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            slElement.innerHTML = `$${slPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        }
     }
 
     function updateSentimentBar(counts) {
       const { buy, sell, warn, neutral, total } = counts;
       sentimentSummary.style.display = 'block';
+
       const sentimentText = document.getElementById('sentiment-text');
-      sentimentText.innerHTML = `<span><div class="dot buy"></div> <b>Buy:</b> ${buy}</span> <span><div class="dot sell"></div> <b>Sell:</b> ${sell}</span> <span><div class="dot warn"></div> <b>Warn:</b> ${warn}</span> <span><div class="dot neutral"></div> <b>Neutral:</b> ${neutral}</span>`;
+      sentimentText.innerHTML = `
+        <span><div class="dot buy"></div> <b>Buy:</b> ${buy}</span>
+        <span><div class="dot sell"></div> <b>Sell:</b> ${sell}</span>
+        <span><div class="dot warn"></div> <b>Warn:</b> ${warn}</span>
+        <span><div class="dot neutral"></div> <b>Neutral:</b> ${neutral}</span>
+      `;
+
       document.getElementById('bar-buy').style.width = `${(buy / total) * 100}%`;
       document.getElementById('bar-sell').style.width = `${(sell / total) * 100}%`;
       document.getElementById('bar-warn').style.width = `${(warn / total) * 100}%`;
@@ -472,20 +319,19 @@
     }
 
     async function runAnalysis() {
-      document.getElementById('debugInfo').innerHTML = '';
-      showDebugData(`Analyzing... CoinScan v${version}`);
       loadingElement.style.display = 'flex';
       chartCanvas.style.display = 'none';
       sentimentSummary.style.display = 'none';
-      synopticCard.style.display = 'none';
       document.getElementById('strategyResults').innerHTML = '';
       lastUpdatedElement.textContent = '';
+
       if (priceChart) priceChart.destroy();
       
       const selectedCoin = coinSelect.value;
       const selectedDays = timeframeSelect.value;
       const coinName = coinSelect.options[coinSelect.selectedIndex].text;
       const timeName = timeframeSelect.options[timeframeSelect.selectedIndex].text;
+      
       chartTitle.textContent = `${coinName} Price - ${timeName}`;
 
       const priceData = await fetchCryptoData(selectedCoin, selectedDays);
@@ -499,23 +345,30 @@
 
       const ctx = chartCanvas.getContext('2d');
       priceChart = new Chart(ctx, {
-        type: 'line', data: { labels: priceData.map(item => new Date(item.timestamp).toLocaleDateString()), datasets: [{ label: `Price of ${coinName} (USD)`, data: priceData.map(item => item.price), borderColor: 'rgba(59, 130, 246, 1)', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.1 }] },
-        options: { responsive: true, maintainAspectRatio: true, scales: { x: { title: { display: true, text: 'Date', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, y: { title: { display: true, text: 'Price (USD)', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } } }, plugins: { legend: { labels: { color: 'white' } } } }
+        type: 'line',
+        data: {
+          labels: priceData.map(item => new Date(item.timestamp).toLocaleDateString()),
+          datasets: [{
+            label: `Price of ${coinName} (USD)`,
+            data: priceData.map(item => item.price),
+            borderColor: 'rgba(59, 130, 246, 1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true, tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          scales: {
+            x: { title: { display: true, text: 'Date', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+            y: { title: { display: true, text: 'Price (USD)', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+          },
+          plugins: { legend: { labels: { color: 'white' } } }
+        }
       });
       
       lastUpdatedElement.textContent = `Last updated at ${new Date().toLocaleTimeString('en-GB')}`;
-      const evaluatedStrategies = evaluateStrategies(priceData);
-      calculateSynopticSignal(evaluatedStrategies, priceData);
+      evaluateStrategies(priceData);
     }
-    
-    // Add event listener to re-calculate P/L without a full re-analysis
-    investmentAmountInput.addEventListener('input', () => {
-        if(priceChart) { // Only run if an analysis has been performed
-            const evaluatedStrategies = strategies.map(s => ({ name: s.name, ...s.evaluate(priceChart.data.datasets[0].data.map((price, i) => ({ price, timestamp: priceChart.data.labels[i] }))) }));
-            const priceData = priceChart.data.datasets[0].data.map((price, i) => ({ price, timestamp: priceChart.data.labels[i] }));
-            calculateSynopticSignal(evaluatedStrategies, priceData);
-        }
-    });
 
     runButton.addEventListener('click', runAnalysis);
     document.addEventListener('DOMContentLoaded', runAnalysis);
@@ -533,3 +386,5 @@
   </script>
 </body>
 </html>
+
+
