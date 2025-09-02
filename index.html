@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CoinScan v4.00</title>
+  <title>CoinScan v4.10 (Stable)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script type="module" src="strategies.js" defer></script>
@@ -252,7 +252,7 @@
   <script type="module">
     import { strategies } from './strategies.js';
 
-    let version = 4.00; // Version updated for major bug fix
+    let version = 4.10; // Version updated for major bug fix
     document.title = `CoinScan v${version.toFixed(2)}`;
     let priceChart = null;
 
@@ -271,11 +271,14 @@
     let currentAnalysisState = {
         priceData: [],
         evaluatedStrategies: [],
+        synopticSignal: {},
     };
 
     async function fetchCryptoData(symbol, days) {
       showDebugData(`Stage: Starting data fetch for ${symbol}, last ${days} day(s)...`);
-      const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
+      // BUG FIX: Added a cache-busting query parameter to ensure fresh data is always fetched
+      const cacheBuster = `&_=${new Date().getTime()}`;
+      const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=${days}&interval=daily${cacheBuster}`;
       try {
         const res = await fetch(url);
         if (!res.ok) {
@@ -348,8 +351,7 @@
       return results;
     }
 
-    // BUG FIX: This function now only calculates and returns values, it does not update the DOM.
-    function calculateSynopticSignal(evaluatedStrategies, priceData) {
+    function calculateSynopticSignal(evaluatedStrategies) {
         showDebugData('Stage: Calculating Synoptic Signal...');
         
         const indicatorCategories = {
@@ -415,23 +417,24 @@
         
         const confidence = maxPossibleScore > 0 ? Math.round((Math.abs(finalScore) / maxPossibleScore) * 100) : 0;
         
-        // Return a data object instead of calling the update function directly
         return { primarySignal, signalClass, iconClass, confidence, rationale };
     }
 
-    // BUG FIX: This function now takes ALL necessary data and is the ONLY function that updates the Synoptic Card DOM.
-    function updateSynopticCard(signalData, priceData, evaluatedStrategies) {
-        synopticCard.style.display = 'block';
-        synopticCard.className = `card synoptic-card ${signalData.signalClass}`;
+    function updateSynopticCard() {
+        const { priceData, evaluatedStrategies, synopticSignal } = currentAnalysisState;
+        if (!priceData || priceData.length === 0) return; // Don't update if there's no data
 
-        document.getElementById('synopticIcon').className = `fas ${signalData.iconClass}`;
-        document.getElementById('synopticSignalText').textContent = signalData.primarySignal;
-        document.getElementById('synopticRationale').innerHTML = signalData.rationale;
-        document.getElementById('synopticConfidence').textContent = `${signalData.confidence}%`;
+        synopticCard.style.display = 'block';
+        synopticCard.className = `card synoptic-card ${synopticSignal.signalClass}`;
+
+        document.getElementById('synopticIcon').className = `fas ${synopticSignal.iconClass}`;
+        document.getElementById('synopticSignalText').textContent = synopticSignal.primarySignal;
+        document.getElementById('synopticRationale').innerHTML = synopticSignal.rationale;
+        document.getElementById('synopticConfidence').textContent = `${synopticSignal.confidence}%`;
         
         const gaugeValue = document.getElementById('synopticGaugeValue');
         const circumference = 2 * Math.PI * 44;
-        const offset = circumference - (signalData.confidence / 100) * circumference;
+        const offset = circumference - (synopticSignal.confidence / 100) * circumference;
         gaugeValue.style.strokeDashoffset = offset;
         
         const investment = parseFloat(investmentAmountInput.value) || 0;
@@ -469,15 +472,11 @@
       document.getElementById('bar-neutral').style.width = `${(neutral / total) * 100}%`;
     }
 
-    // BUG FIX: The main function is refactored to ensure a clean state on every run.
     async function runAnalysis() {
-      // 1. RESET STATE
       document.getElementById('debugInfo').innerHTML = '';
       showDebugData(`Analyzing... CoinScan v${version}`);
       if (priceChart) priceChart.destroy();
-      currentAnalysisState = { priceData: [], evaluatedStrategies: [] }; // Clear old data
 
-      // 2. SETUP UI FOR LOADING
       loadingElement.style.display = 'flex';
       chartCanvas.style.display = 'none';
       sentimentSummary.style.display = 'none';
@@ -485,32 +484,30 @@
       document.getElementById('strategyResults').innerHTML = '';
       lastUpdatedElement.textContent = '';
       
-      // 3. GET USER INPUT
       const selectedCoin = coinSelect.value;
       const selectedDays = timeframeSelect.value;
       const coinName = coinSelect.options[coinSelect.selectedIndex].text;
       const timeName = timeframeSelect.options[timeframeSelect.selectedIndex].text;
       chartTitle.textContent = `${coinName} Price - ${timeName}`;
 
-      // 4. FETCH NEW DATA
       const priceData = await fetchCryptoData(selectedCoin, selectedDays);
       if (priceData.length === 0) {
         loadingElement.innerHTML = 'Failed to load chart data. Please try again.';
         return;
       }
 
-      // 5. PROCESS AND RENDER
       loadingElement.style.display = 'none';
       chartCanvas.style.display = 'block';
       
       const evaluatedStrategies = evaluateStrategies(priceData);
-      const synopticSignalData = calculateSynopticSignal(evaluatedStrategies, priceData);
+      const synopticSignal = calculateSynopticSignal(evaluatedStrategies);
       
-      // 6. UPDATE GLOBAL STATE and UI
-      currentAnalysisState = { priceData, evaluatedStrategies }; // Store the new, fresh data
-      updateSynopticCard(synopticSignalData, priceData, evaluatedStrategies);
+      // BUG FIX: Store all new results in a single state object
+      currentAnalysisState = { priceData, evaluatedStrategies, synopticSignal };
       
-      // Update Chart
+      // Now update the UI from the clean state object
+      updateSynopticCard();
+      
       const ctx = chartCanvas.getContext('2d');
       priceChart = new Chart(ctx, {
         type: 'line', data: { labels: priceData.map(item => new Date(item.timestamp).toLocaleDateString()), datasets: [{ label: `Price of ${coinName} (USD)`, data: priceData.map(item => item.price), borderColor: 'rgba(59, 130, 246, 1)', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.1 }] },
@@ -519,11 +516,10 @@
       lastUpdatedElement.textContent = `Last updated at ${new Date().toLocaleTimeString('en-GB')}`;
     }
     
-    // Event listener now only needs to update the card with the latest valid state
     investmentAmountInput.addEventListener('input', () => {
+        // This listener only needs to re-run the UI update part, using the clean state
         if(currentAnalysisState.priceData.length > 0) {
-            const signalData = calculateSynopticSignal(currentAnalysisState.evaluatedStrategies, currentAnalysisState.priceData);
-            updateSynopticCard(signalData, currentAnalysisState.priceData, currentAnalysisState.evaluatedStrategies);
+            updateSynopticCard();
         }
     });
 
