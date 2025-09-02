@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CoinScan v3.80</title>
+  <title>CoinScan v3.90</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script type="module" src="strategies.js" defer></script>
@@ -114,6 +114,11 @@
     .strategy-header strong { color: var(--text-color); display: flex; align-items: center; gap: 8px; }
     .strategy-header .signal-text { font-size: 0.85em; font-weight: 400; color: var(--text-muted-color); white-space: nowrap; margin-left: 8px; }
     .signal-icon { font-size: 1.2em; }
+    .strategy-description { font-size: 0.9em; color: var(--text-muted-color); }
+    .strategy.signal-buy { background: var(--success-bg); border-color: var(--success-border); }
+    .strategy.signal-sell { background: var(--danger-bg); border-color: var(--danger-border); }
+    .strategy.signal-warn { background: var(--warning-bg); border-color: var(--warning-border); }
+    .strategy.signal-neutral { background: var(--neutral-bg); border-color: var(--neutral-border); }
     .debug-toggle-container { display: flex; justify-content: center; margin-top: 10px; }
     #debugToggle { background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-muted-color); font-size: 1rem; font-family: var(--font-family); cursor: pointer; padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease; }
     #debugToggle:hover { background: var(--border-color); color: var(--text-color); }
@@ -247,7 +252,7 @@
   <script type="module">
     import { strategies } from './strategies.js';
 
-    let version = 3.80; // Version updated
+    let version = 3.90; // Version updated for bug fix
     document.title = `CoinScan v${version.toFixed(2)}`;
     let priceChart = null;
 
@@ -261,9 +266,6 @@
     const lastUpdatedElement = document.getElementById('lastUpdated');
     const sentimentSummary = document.getElementById('sentiment-summary');
     const synopticCard = document.getElementById('synopticSignalCard');
-
-    let latestPriceData = [];
-    let latestEvaluatedStrategies = [];
 
     async function fetchCryptoData(symbol, days) {
       showDebugData(`Stage: Starting data fetch for ${symbol}, last ${days} day(s)...`);
@@ -316,10 +318,10 @@
       showDebugData('Stage: Evaluating strategies...');
       const results = strategies.map(strategy => {
           try {
-              return { name: strategy.name, ...strategy.evaluate(priceData) };
+              return { name: strategy.name, description: strategy.description, ...strategy.evaluate(priceData) };
           } catch(e) {
               showDebugData(`Error in strategy "${strategy.name}": ${e.message}`);
-              return { name: strategy.name, signal: "Error", match: false };
+              return { name: strategy.name, description: strategy.description, signal: "Error", match: false };
           }
       });
       
@@ -332,7 +334,8 @@
         sentimentCounts[visuals.category]++;
         const div = document.createElement('div');
         div.classList.add('strategy', visuals.className);
-        div.innerHTML = `<div class="strategy-header"><strong><span class="signal-icon">${visuals.icon}</span>${result.name}</strong><span class="signal-text">(${result.signal})</span></div>`;
+        // BUG FIX: Restored the signal text and description to the strategy card HTML
+        div.innerHTML = `<div class="strategy-header"><strong><span class="signal-icon">${visuals.icon}</span>${result.name}</strong><span class="signal-text">(${result.signal})</span></div><div class="strategy-description">${result.description}</div>`;
         container.appendChild(div);
       });
       updateSentimentBar(sentimentCounts);
@@ -340,7 +343,7 @@
       return results;
     }
 
-    function calculateSynopticSignal() {
+    function calculateSynopticSignal(evaluatedStrategies, priceData) {
         showDebugData('Stage: Calculating Synoptic Signal...');
         
         const indicatorCategories = {
@@ -353,7 +356,7 @@
         const categoryFactors = { Trend: [], Momentum: [], Volatility: [], Volume: [] };
         let maxPossibleScore = 0;
 
-        latestEvaluatedStrategies.forEach(strat => {
+        evaluatedStrategies.forEach(strat => {
             let score = 0;
             const signal = (strat.signal || "").toLowerCase();
             const name = strat.name.toLowerCase();
@@ -407,7 +410,8 @@
         const confidence = maxPossibleScore > 0 ? Math.round((Math.abs(finalScore) / maxPossibleScore) * 100) : 0;
         
         updateSynopticCard({
-            primarySignal, signalClass, iconClass, confidence, rationale
+            primarySignal, signalClass, iconClass, confidence, rationale,
+            priceData, evaluatedStrategies // Pass full data for calculation
         });
     }
 
@@ -426,8 +430,8 @@
         gaugeValue.style.strokeDashoffset = offset;
         
         const investment = parseFloat(investmentAmountInput.value) || 0;
-        const currentPrice = latestPriceData[latestPriceData.length - 1].price;
-        const atrValue = latestEvaluatedStrategies.find(s => s.name === "ATR Breakout")?.atrValue || currentPrice * 0.03;
+        const currentPrice = data.priceData[data.priceData.length - 1].price;
+        const atrValue = data.evaluatedStrategies.find(s => s.name === "ATR Breakout")?.atrValue || currentPrice * 0.03;
 
         const tpPrice = currentPrice + (atrValue * 2);
         const slPrice = currentPrice - (atrValue * 1.5);
@@ -477,9 +481,9 @@
       const timeName = timeframeSelect.options[timeframeSelect.selectedIndex].text;
       chartTitle.textContent = `${coinName} Price - ${timeName}`;
 
-      latestPriceData = await fetchCryptoData(selectedCoin, selectedDays);
+      const priceData = await fetchCryptoData(selectedCoin, selectedDays);
       
-      if (latestPriceData.length === 0) {
+      if (priceData.length === 0) {
         loadingElement.innerHTML = 'Failed to load chart data. Please try again.';
         return;
       }
@@ -488,21 +492,26 @@
 
       const ctx = chartCanvas.getContext('2d');
       priceChart = new Chart(ctx, {
-        type: 'line', data: { labels: latestPriceData.map(item => new Date(item.timestamp).toLocaleDateString()), datasets: [{ label: `Price of ${coinName} (USD)`, data: latestPriceData.map(item => item.price), borderColor: 'rgba(59, 130, 246, 1)', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.1 }] },
+        type: 'line', data: { labels: priceData.map(item => new Date(item.timestamp).toLocaleDateString()), datasets: [{ label: `Price of ${coinName} (USD)`, data: priceData.map(item => item.price), borderColor: 'rgba(59, 130, 246, 1)', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.1 }] },
         options: { responsive: true, maintainAspectRatio: true, scales: { x: { title: { display: true, text: 'Date', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, y: { title: { display: true, text: 'Price (USD)', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } } }, plugins: { legend: { labels: { color: 'white' } } } }
       });
       
       lastUpdatedElement.textContent = `Last updated at ${new Date().toLocaleTimeString('en-GB')}`;
-      latestEvaluatedStrategies = evaluateStrategies(latestPriceData);
-      calculateSynopticSignal();
+      
+      // BUG FIX: Pass data explicitly instead of relying on global state
+      const evaluatedStrategies = evaluateStrategies(priceData);
+      calculateSynopticSignal(evaluatedStrategies, priceData);
+      
+      // Add event listener that has access to the latest results
+      investmentAmountInput.oninput = () => {
+          updateSynopticCard({
+              ...calculateSynopticSignal(evaluatedStrategies, priceData), // Recalculate to get base values
+              priceData,
+              evaluatedStrategies
+          });
+      };
     }
     
-    investmentAmountInput.addEventListener('input', () => {
-        if(latestPriceData.length > 0) {
-            calculateSynopticSignal();
-        }
-    });
-
     runButton.addEventListener('click', runAnalysis);
     document.addEventListener('DOMContentLoaded', runAnalysis);
   </script>
